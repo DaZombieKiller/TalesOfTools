@@ -24,6 +24,8 @@ namespace TL
     {
         u64 ofs_entries;
         u64 num_entries;
+        
+        // sorted by key, in order to allow for a binary search to be performed
         ss_map_entry<TKey, TValue> entries[num_entries] @ addressof(ofs_entries) + ofs_entries;
     };
 }
