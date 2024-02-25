@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace ScpkTool;
+namespace TLTool;
 
 public unsafe sealed class ScriptPackage
 {
@@ -102,7 +102,7 @@ public unsafe sealed class ScriptPackage
             // Update entry.
             stream.WriteAlign(Alignment);
             entries[i].Offset = (uint)(stream.Position - (sizeof(Header) + sizeof(Entry) * i));
-            entries[i].Hash = ScriptNameHash.Compute(name);
+            entries[i].Hash = NameHash.Compute(name);
 
             if (BitConverter.IsLittleEndian == bigEndian)
                 entries[i].ReverseEndianness();
@@ -135,8 +135,8 @@ public unsafe sealed class ScriptPackage
 
     private static int CompareNameHashes(KeyValuePair<string, byte[]> a, KeyValuePair<string, byte[]> b)
     {
-        var hash1 = ScriptNameHash.Compute(a.Key);
-        var hash2 = ScriptNameHash.Compute(b.Key);
+        var hash1 = NameHash.Compute(a.Key);
+        var hash2 = NameHash.Compute(b.Key);
         return hash1.CompareTo(hash2);
     }
 
@@ -166,7 +166,7 @@ public unsafe sealed class ScriptPackage
 
     private struct Entry
     {
-        /// <summary>The hash of the entry's name, computed by <see cref="ScriptNameHash.Compute"/>.</summary>
+        /// <summary>The hash of the entry's name, computed by <see cref="NameHash.Compute"/>.</summary>
         public uint Hash;
 
         /// <summary>The offset of the entry's data, relative to the <see cref="Entry"/>.</summary>

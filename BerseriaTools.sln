@@ -5,7 +5,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{175BBE3C-678E-44D2-A034-D931E292D56A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScpkTool", "tools\ScpkTool\ScpkTool.csproj", "{91D327EE-3F59-4D18-843A-E1C0DBD3F86C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TLTool", "tools\TLTool\TLTool.csproj", "{91D327EE-3F59-4D18-843A-E1C0DBD3F86C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

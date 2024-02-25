@@ -1,7 +1,9 @@
-﻿namespace ScpkTool;
+﻿namespace TLTool;
 
+/// <summary>Provides extension methods for <see cref="Stream"/>.</summary>
 public static class StreamExtensions
 {
+    /// <summary>Writes 0x00 bytes to the <see cref="Stream"/> until its position is aligned to the specified value.</summary>
     public static void WriteAlign(this Stream stream, long alignment)
     {
         var aligned = (stream.Position + (alignment - 1)) & ~(alignment - 1);
@@ -12,11 +14,13 @@ public static class StreamExtensions
         }
     }
 
+    /// <summary>Tracks the current position of the <see cref="Stream"/> and restores it on dispose.</summary>
     public static TemporarySeek TemporarySeek(this Stream stream)
     {
         return new TemporarySeek(stream, stream.Position);
     }
 
+    /// <summary>Seeks the <see cref="Stream"/> to the provided position, tracking its previous position and restoring it on dispose.</summary>
     public static TemporarySeek TemporarySeek(this Stream stream, long position)
     {
         return new TemporarySeek(stream, position);

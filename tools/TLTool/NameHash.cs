@@ -1,11 +1,11 @@
 ﻿using System.Text;
 
-namespace ScpkTool;
+namespace TLTool;
 
-public static class ScriptNameHash
+/// <summary>Provides methods for computing hashes of names.</summary>
+public static class NameHash
 {
-    private const uint GoldenRatio = 0x61C88647;
-
+    /// <summary>Computes the hash of the provided span of bytes.</summary>
     public static uint Compute(ReadOnlySpan<byte> name)
     {
         uint hash = 0;
@@ -16,16 +16,19 @@ public static class ScriptNameHash
         return hash;
     }
 
+    /// <summary>Computes the hash of the ASCII representation of the provided string.</summary>
     public static uint Compute(string name)
     {
         return Compute(Encoding.ASCII.GetBytes(name));
     }
 
+    /// <summary>Appends the provided byte to the hash.</summary>
     private static uint Append(uint hash, byte b)
     {
-        return hash ^ (b + (hash << 6) + (hash >> 2) - GoldenRatio);
+        return hash ^ (b + (hash << 6) + (hash >> 2) - 0x61C88647);
     }
 
+    /// <summary>Converts the provided ASCII value to uppercase.</summary>
     private static byte ToUpper(byte b)
     {
         return (byte)(b - 'a') < 0x1A ? (byte)(b - ' ') : b;
