@@ -27,7 +27,7 @@ public sealed class PackCommand
         foreach (string file in Directory.EnumerateFiles(inputs, "*", SearchOption.AllDirectories))
         {
             var entry = new DataHeaderEntry(new FileInfo(file));
-            header.AddFile(Path.GetFileNameWithoutExtension(file), entry);
+            header.AddFile(Path.GetFileName(file), entry);
         }
 
         using var head = File.Create(Path.Combine(output, "FILEHEADER.TOFHDB"));
