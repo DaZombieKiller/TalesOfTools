@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.CommandLine;
+﻿using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.Parsing;
 
@@ -56,42 +55,7 @@ public sealed class UnpackCommand
             Directory.CreateDirectory(Path.Combine(output, entry.Extension));
             using var stream = File.Create(Path.Combine(output, entry.Extension, name));
             using var source = entry.OpenRead();
-            CopyAndFillRemainingBytes(source, stream, entry.Length);
+            source.CopyTo(stream);
         }
-    }
-
-    // Handles potentially corrupt FILEHEADER.TOFHDB files referencing out of bounds data in TLFILE.TLDAT
-    private static void CopyAndFillRemainingBytes(Stream source, Stream destination, long length, int bufferSize = 81920)
-    {
-        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
-
-        while (length > 0)
-        {
-            int count = (int)long.Min(buffer.Length, length);
-            int read  = source.ReadAtLeast(buffer, count, throwOnEndOfStream: false);
-
-            if (read == 0)
-                break;
-
-            destination.Write(buffer, 0, read);
-            length -= read;
-        }
-
-        if (length == 0)
-            goto Completed;
-
-        // Ensure that the buffer is full of 0x00 bytes.
-        // We're going to reuse it to fill the rest of the stream.
-        Array.Clear(buffer, 0, bufferSize);
-
-        while (length > 0)
-        {
-            int count = (int)long.Min(length, bufferSize);
-            destination.Write(buffer, 0, count);
-            length -= count;
-        }
-
-    Completed:
-        ArrayPool<byte>.Shared.Return(buffer);
     }
 }
