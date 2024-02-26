@@ -16,12 +16,18 @@ public sealed class UnpackCommand
 
     public Option<string> FileDictionaryPath { get; } = new("--dictionary", "Path to name dictionary file");
 
+    public Option<bool> Is32Bit { get; } = new("--bit32", "File is 32-bit (Xillia, Zestiria)");
+
+    public Option<bool> IsBigEndian { get; } = new("--big-endian", "File is big-endian");
+
     public UnpackCommand()
     {
         Command.AddArgument(HeaderPath);
         Command.AddArgument(TLFilePath);
         Command.AddArgument(OutputPath);
         Command.AddOption(FileDictionaryPath);
+        Command.AddOption(Is32Bit);
+        Command.AddOption(IsBigEndian);
         Handler.SetHandler(Command, Execute);
     }
 
@@ -30,9 +36,12 @@ public sealed class UnpackCommand
         var header = new DataHeader();
         var mapper = new Dictionary<uint, string>();
         var output = context.ParseResult.GetValueForArgument(OutputPath);
-
+        var is32Bit = context.ParseResult.GetValueForOption(Is32Bit);
+        var bigEndian = context.ParseResult.GetValueForOption(IsBigEndian);
+        
         using (var stream = File.OpenRead(context.ParseResult.GetValueForArgument(HeaderPath)))
-            header.ReadFrom(stream, new FileInfo(context.ParseResult.GetValueForArgument(TLFilePath)));
+        using (var reader = bigEndian ? new BigEndianBinaryReader(stream) : new BinaryReader(stream))
+            header.ReadFrom(reader, new FileInfo(context.ParseResult.GetValueForArgument(TLFilePath)), is32Bit);
 
         if (context.ParseResult.HasOption(FileDictionaryPath))
         {

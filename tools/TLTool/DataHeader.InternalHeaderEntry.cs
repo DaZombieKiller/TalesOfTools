@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+﻿using System.Text;
+using System.IO.Compression;
 
 namespace TLTool;
 
@@ -37,8 +38,23 @@ public sealed partial class DataHeader
 
             if (Length != CompressedLength)
             {
-                stream.Position += 4 * 6;
-                stream = new DeflateStream(stream, CompressionMode.Decompress);
+                using var reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true);
+
+                if (reader.ReadUInt32() == 0x435A4C54) // TLZC
+                {
+                    var version = reader.ReadUInt32();
+
+                    if (version == 0x0201)
+                    {
+                        reader.ReadUInt32(); // compressed size
+                        reader.ReadUInt32(); // uncompressed size
+                        reader.ReadUInt32(); // unknown
+                        reader.ReadUInt32(); // unknown
+                        return new DeflateStream(stream, CompressionMode.Decompress);
+                    }
+                }
+
+                stream.Position = 0;
             }
 
             return stream;

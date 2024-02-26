@@ -11,10 +11,16 @@ public sealed class PackCommand
 
     public Argument<string> OutputPath { get; } = new("output-path", "Folder to write FILEHEADER.TOFHDB and TLFILE.TLDAT to");
 
+    public Option<bool> Is32Bit { get; } = new("--bit32", "Write a 32-bit package");
+
+    public Option<bool> IsBigEndian { get; } = new("--big-endian", "Write a big-endian package");
+
     public PackCommand()
     {
         Command.AddArgument(InputPath);
         Command.AddArgument(OutputPath);
+        Command.AddOption(Is32Bit);
+        Command.AddOption(IsBigEndian);
         Handler.SetHandler(Command, Execute);
     }
 
@@ -23,6 +29,8 @@ public sealed class PackCommand
         var header = new DataHeader();
         var inputs = context.ParseResult.GetValueForArgument(InputPath);
         var output = context.ParseResult.GetValueForArgument(OutputPath);
+        var is32Bit = context.ParseResult.GetValueForOption(Is32Bit);
+        var bigEndian = context.ParseResult.GetValueForOption(IsBigEndian);
 
         foreach (string file in Directory.EnumerateFiles(inputs, "*", SearchOption.AllDirectories))
         {
@@ -30,8 +38,9 @@ public sealed class PackCommand
             header.AddFile(Path.GetFileName(file), entry);
         }
 
-        using var head = File.Create(Path.Combine(output, "FILEHEADER.TOFHDB"));
+        using var stream = File.Create(Path.Combine(output, "FILEHEADER.TOFHDB"));
+        using var writer = bigEndian ? new BigEndianBinaryWriter(stream) : new BinaryWriter(stream);
         using var data = File.Create(Path.Combine(output, "TLFILE.TLDAT"));
-        header.Write(head, data);
+        header.Write(writer, data, is32Bit);
     }
 }

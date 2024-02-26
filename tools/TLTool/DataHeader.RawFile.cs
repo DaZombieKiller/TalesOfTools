@@ -27,7 +27,10 @@ public sealed partial class DataHeader
         public unsafe fixed byte ExtensionBuffer[MaxExtensionLength + 1];
 
         /// <summary>The length of the file's extension in <see cref="ExtensionBuffer"/>.</summary>
-        public ushort ExtensionLength;
+        public byte ExtensionLength;
+
+        /// <summary>Unknown. Most likely padding.</summary>
+        public byte Unknown;
 
         /// <summary>Gets the file's extension as a read-only span of bytes.</summary>
         public unsafe readonly ReadOnlySpan<byte> Extension
@@ -51,7 +54,8 @@ public sealed partial class DataHeader
             fixed (byte* pExtension = ExtensionBuffer)
                 reader.BaseStream.ReadExactly(new Span<byte>(pExtension, MaxExtensionLength + 1));
 
-            ExtensionLength = reader.ReadUInt16();
+            ExtensionLength = reader.ReadByte();
+            Unknown = reader.ReadByte();
         }
 
         /// <summary>Writes this <see cref="RawFile"/> to the specified writer.</summary>
@@ -66,6 +70,7 @@ public sealed partial class DataHeader
                 writer.Write(new ReadOnlySpan<byte>(pExtension, MaxExtensionLength + 1));
 
             writer.Write(ExtensionLength);
+            writer.Write(Unknown);
         }
     }
 }

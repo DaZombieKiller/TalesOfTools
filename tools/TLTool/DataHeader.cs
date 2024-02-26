@@ -17,24 +17,16 @@ public sealed partial class DataHeader
         Entries  = _entries.AsReadOnly();
     }
 
-    /// <summary>Initializes a new <see cref="DataHeader"/> instance.</summary>
-    public DataHeader(Stream stream, FileInfo data)
-        : this()
-    {
-        ReadFrom(stream, data);
-    }
-
     /// <summary>Reads the entries from the specified stream into the <see cref="DataHeader"/>.</summary>
     /// <param name="data">The data file containing the data for the entries described in the stream.</param>
-    public void ReadFrom(Stream stream, FileInfo data)
+    public void ReadFrom(BinaryReader reader, FileInfo data, bool is32Bit)
     {
-        using var reader = new BinaryReader(stream, Encoding.ASCII, leaveOpen: true);
-        var header       = new RawHeader(reader);
+        var header = new RawHeader(reader, is32Bit);
 
         // We could read the entries array here, but it's merely a sorted lookup table
         // into the files array, so assuming we have a well-formed file, we don't really
         // need to bother reading it and can just read the files array directly.
-        stream.Position = RawHeader.BaseFileOffset + (long)header.FilesOffset;
+        reader.BaseStream.Position = RawHeader.GetBaseFileOffset(is32Bit) + (long)header.FilesOffset;
         var files = new RawFile[header.FilesCount];
 
         for (var i = 0ul; i < header.FilesCount; i++)
@@ -42,7 +34,7 @@ public sealed partial class DataHeader
             files[i] = new RawFile(reader);
         }
 
-        stream.Position = RawHeader.BaseEntryOffset + (long)header.EntryOffset;
+        reader.BaseStream.Position = RawHeader.GetBaseEntryOffset(is32Bit) + (long)header.EntryOffset;
         for (var i = 0ul; i < header.EntryCount; i++)
         {
             reader.ReadUInt32();
@@ -69,17 +61,16 @@ public sealed partial class DataHeader
     }
 
     /// <summary>Writes the header and all of its entries to the specified header and data streams.</summary>
-    public unsafe void Write(Stream destination, Stream data)
+    public unsafe void Write(BinaryWriter writer, Stream data, bool is32Bit)
     {
-        var header       = new RawHeader();
-        using var writer = new BinaryWriter(destination, Encoding.ASCII, leaveOpen: true);
-        header.Write(writer);
+        var header = new RawHeader();
+        header.Write(writer, is32Bit);
 
         // The entries array is sorted by hash so that the engine can perform a binary search on it.
         var entries = _entries.ToArray();
         Array.Sort(entries, new KeyComparer<uint, IDataHeaderEntry>());
 
-        header.EntryOffset = (ulong)destination.Position - RawHeader.BaseEntryOffset;
+        header.EntryOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseEntryOffset(is32Bit);
         header.EntryCount  = (uint)entries.Length;
 
         for (int i = 0; i < entries.Length; i++)
@@ -88,7 +79,7 @@ public sealed partial class DataHeader
             writer.Write(i);
         }
 
-        header.FilesOffset = (ulong)destination.Position - RawHeader.BaseFileOffset;
+        header.FilesOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseFileOffset(is32Bit);
         header.FilesCount  = (uint)entries.Length;
 
         foreach (var (hash, entry) in entries)
@@ -110,7 +101,7 @@ public sealed partial class DataHeader
                     Console.WriteLine($"Warning: '{entry.Extension}' extension is too long and will be truncated.");
 
                 bytes[..length].CopyTo(new Span<byte>(file.ExtensionBuffer, RawFile.MaxExtensionLength));
-                file.ExtensionLength = (ushort)length;
+                file.ExtensionLength = (byte)length;
             }
 
             using (var stream = entry.OpenRead())
@@ -119,7 +110,7 @@ public sealed partial class DataHeader
             file.Write(writer);
         }
 
-        destination.Position = 0;
-        header.Write(writer);
+        writer.BaseStream.Position = 0;
+        header.Write(writer, is32Bit);
     }
 }
