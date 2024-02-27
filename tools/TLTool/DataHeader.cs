@@ -26,16 +26,16 @@ public sealed partial class DataHeader
         // We could read the entries array here, but it's merely a sorted lookup table
         // into the files array, so assuming we have a well-formed file, we don't really
         // need to bother reading it and can just read the files array directly.
-        reader.BaseStream.Position = RawHeader.GetBaseFileOffset(is32Bit) + (long)header.FilesOffset;
-        var files = new RawFile[header.FilesCount];
+        reader.BaseStream.Position = RawHeader.GetBaseFileOffset(is32Bit) + (long)header.FileArrayOffset;
+        var files = new RawFile[header.FileArrayLength];
 
-        for (var i = 0ul; i < header.FilesCount; i++)
+        for (var i = 0ul; i < header.FileArrayLength; i++)
         {
             files[i] = new RawFile(reader);
         }
 
-        reader.BaseStream.Position = RawHeader.GetBaseEntryOffset(is32Bit) + (long)header.EntryOffset;
-        for (var i = 0ul; i < header.EntryCount; i++)
+        reader.BaseStream.Position = RawHeader.GetBaseEntryOffset(is32Bit) + (long)header.FileHashArrayOffset;
+        for (var i = 0ul; i < header.FileHashArrayLength; i++)
         {
             reader.ReadUInt32();
             var file = files[reader.ReadUInt32()];
@@ -70,8 +70,8 @@ public sealed partial class DataHeader
         var entries = _entries.ToArray();
         Array.Sort(entries, new KeyComparer<uint, IDataHeaderEntry>());
 
-        header.EntryOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseEntryOffset(is32Bit);
-        header.EntryCount  = (uint)entries.Length;
+        header.FileHashArrayOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseEntryOffset(is32Bit);
+        header.FileHashArrayLength  = (uint)entries.Length;
 
         for (int i = 0; i < entries.Length; i++)
         {
@@ -79,8 +79,8 @@ public sealed partial class DataHeader
             writer.Write(i);
         }
 
-        header.FilesOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseFileOffset(is32Bit);
-        header.FilesCount  = (uint)entries.Length;
+        header.FileArrayOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseFileOffset(is32Bit);
+        header.FileArrayLength  = (uint)entries.Length;
 
         foreach (var (hash, entry) in entries)
         {
