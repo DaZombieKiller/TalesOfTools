@@ -1,6 +1,6 @@
 //
 // Tales of Berseria
-// SCPACKR (SCPK) Format
+// SCPACK (SCPK) Format
 //
 
 #include <std/core.pat>
