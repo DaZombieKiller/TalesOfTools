@@ -44,18 +44,19 @@ public sealed partial class DataHeader
 
                 if (reader.ReadUInt32() == 0x435A4C54) // TLZC
                 {
-                    var version = reader.ReadUInt32();
+                    reader.ReadByte(); // unknown
+                    var compressionType = reader.ReadByte();
                     var compressedSize = reader.ReadUInt32();
                     var uncompressedSize = reader.ReadUInt32();
                     reader.ReadUInt32(); // unknown
                     reader.ReadUInt32(); // unknown
 
-                    if (version == 0x0201)
+                    if (compressionType == 2)
                         return new DeflateStream(stream, CompressionMode.Decompress);
 
                     // https://blog.lse.epita.fr/2012/04/07/static-analysis-of-an-unknown-compression-format.html
                     // TODO: Clean this up a bit, make it actually stream the data instead of decompressing all at once.
-                    if (version == 0x0401)
+                    if (compressionType == 4)
                     {
                         var decoded    = new MemoryStream();
                         var decoder    = new LzmaDecoder();
@@ -69,18 +70,17 @@ public sealed partial class DataHeader
 
                         for (int i = 0; i < blockSizes.Length; i++)
                         {
-                            if (blockSizes[i] == 0)
+                            if (blockSizes[i] != 0)
+                                decoder.Code(stream, decoded, blockSizes[i], uint.Min(remaining, 0x10000), null);
+                            else
                             {
-                                // If the block size is zero, then the rest of the file is uncompressed.
-                                var buffer = ArrayPool<byte>.Shared.Rent((int)remaining);
-                                stream.ReadExactly(buffer, 0, (int)remaining);
-                                decoded.Write(buffer, 0, (int)remaining);
+                                var length = int.Min((int)remaining, 0x10000);
+                                var buffer = ArrayPool<byte>.Shared.Rent(length);
+                                stream.ReadExactly(buffer, 0, length);
+                                decoded.Write(buffer, 0, length);
                                 ArrayPool<byte>.Shared.Return(buffer);
-                                break;
+                                remaining -= (uint)length;
                             }
-
-                            decoder.Code(stream, decoded, blockSizes[i], uint.Min(remaining, 0x10000), null);
-                            remaining -= 0x10000;
                         }
 
                         stream.Dispose();
