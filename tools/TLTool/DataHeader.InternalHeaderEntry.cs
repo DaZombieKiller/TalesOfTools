@@ -59,23 +59,17 @@ public sealed partial class DataHeader
                         var decoded    = new MemoryStream();
                         var decoder    = new LzmaDecoder();
                         var blockCount = (uncompressedSize + 0xFFFF) / 0x10000;
-                        var dataOffset = 29 + 2 * blockCount;
+                        var blockSizes = new ushort[blockCount];
                         var remaining  = uncompressedSize;
                         decoder.SetDecoderProperties(reader.ReadBytes(5));
-                        
-                        for (int i = 0; i < blockCount; i++)
+
+                        for (int i = 0; i < blockSizes.Length; i++)
+                            blockSizes[i] = reader.ReadUInt16();
+
+                        for (int i = 0; i < blockSizes.Length; i++)
                         {
-                            stream.Position = 29 + 2 * i;
-                            var blockSize   = reader.ReadUInt16();
-                            stream.Position = dataOffset;
-
-                            if (remaining < 0x10000)
-                                decoder.Code(stream, decoded, blockSize, remaining, null!);
-                            else
-                                decoder.Code(stream, decoded, blockSize, 0x10000, null!);
-
+                            decoder.Code(stream, decoded, blockSizes[i], uint.Min(remaining, 0x10000), null);
                             remaining -= 0x10000;
-                            dataOffset += blockSize;
                         }
 
                         stream.Dispose();
