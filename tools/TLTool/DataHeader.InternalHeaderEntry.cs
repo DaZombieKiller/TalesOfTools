@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Buffers;
 using System.IO.Compression;
 using LzmaDecoder = SevenZip.Compression.LZMA.Decoder;
 
@@ -62,12 +63,22 @@ public sealed partial class DataHeader
                         var blockSizes = new ushort[blockCount];
                         var remaining  = uncompressedSize;
                         decoder.SetDecoderProperties(reader.ReadBytes(5));
-
+                        
                         for (int i = 0; i < blockSizes.Length; i++)
                             blockSizes[i] = reader.ReadUInt16();
 
                         for (int i = 0; i < blockSizes.Length; i++)
                         {
+                            if (blockSizes[i] == 0)
+                            {
+                                // If the block size is zero, then the rest of the file is uncompressed.
+                                var buffer = ArrayPool<byte>.Shared.Rent((int)remaining);
+                                stream.ReadExactly(buffer, 0, (int)remaining);
+                                decoded.Write(buffer, 0, (int)remaining);
+                                ArrayPool<byte>.Shared.Return(buffer);
+                                break;
+                            }
+
                             decoder.Code(stream, decoded, blockSizes[i], uint.Min(remaining, 0x10000), null);
                             remaining -= 0x10000;
                         }
