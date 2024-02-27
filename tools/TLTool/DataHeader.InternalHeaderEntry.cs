@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.IO.Compression;
+using LzmaDecoder = SevenZip.Compression.LZMA.Decoder;
 
 namespace TLTool;
 
@@ -43,14 +44,43 @@ public sealed partial class DataHeader
                 if (reader.ReadUInt32() == 0x435A4C54) // TLZC
                 {
                     var version = reader.ReadUInt32();
+                    var compressedSize = reader.ReadUInt32();
+                    var uncompressedSize = reader.ReadUInt32();
+                    reader.ReadUInt32(); // unknown
+                    reader.ReadUInt32(); // unknown
 
                     if (version == 0x0201)
-                    {
-                        reader.ReadUInt32(); // compressed size
-                        reader.ReadUInt32(); // uncompressed size
-                        reader.ReadUInt32(); // unknown
-                        reader.ReadUInt32(); // unknown
                         return new DeflateStream(stream, CompressionMode.Decompress);
+
+                    // https://blog.lse.epita.fr/2012/04/07/static-analysis-of-an-unknown-compression-format.html
+                    // TODO: Clean this up a bit, make it actually stream the data instead of decompressing all at once.
+                    if (version == 0x0401)
+                    {
+                        var decoded    = new MemoryStream();
+                        var decoder    = new LzmaDecoder();
+                        var blockCount = (uncompressedSize + 0xFFFF) / 0x10000;
+                        var dataOffset = 29 + 2 * blockCount;
+                        var remaining  = uncompressedSize;
+                        decoder.SetDecoderProperties(reader.ReadBytes(5));
+                        
+                        for (int i = 0; i < blockCount; i++)
+                        {
+                            stream.Position = 29 + 2 * i;
+                            var blockSize   = reader.ReadUInt16();
+                            stream.Position = dataOffset;
+
+                            if (remaining < 0x10000)
+                                decoder.Code(stream, decoded, blockSize, remaining, null!);
+                            else
+                                decoder.Code(stream, decoded, blockSize, 0x10000, null!);
+
+                            remaining -= 0x10000;
+                            dataOffset += blockSize;
+                        }
+
+                        stream.Dispose();
+                        decoded.Position = 0;
+                        return decoded;
                     }
                 }
 
