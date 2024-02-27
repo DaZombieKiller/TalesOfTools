@@ -5,9 +5,23 @@
 #include <iostream>
 #include <fstream>
 
-decltype(&GetCurrentDirectoryA) PGetCurrentDirectoryA;
+#ifdef _WIN64
+#define BERSERIA
+#else
+#define ZESTIRIA
+#endif
 
+#ifdef BERSERIA
+decltype(&GetCurrentDirectoryA) PEarlyFunction;
+#else
+decltype(&CreateMutexA) PEarlyFunction;
+#endif
+
+#ifdef ZESTIRIA
+static void(__fastcall *Load)(const char*, const char*, void*);
+#else
 static void(*Load)(void*, const char*, const char*);
+#endif
 
 static CRITICAL_SECTION LoadSection;
 
@@ -44,7 +58,7 @@ static unsigned GetNameHash(const char* name, const char* extension)
     return GetHash(s);
 }
 
-static void LoadDetour(void* this_, const char* name, const char* extension)
+static void __fastcall AddNameHash(const char* name, const char* extension, void* dummy = nullptr)
 {
     EnterCriticalSection(&LoadSection);
     unsigned hash = GetNameHash(name, extension);
@@ -60,7 +74,28 @@ static void LoadDetour(void* this_, const char* name, const char* extension)
     }
 
     LeaveCriticalSection(&LoadSection);
+}
+
+#ifdef ZESTIRIA
+__declspec(naked) static void __fastcall LoadDetour(const char* name, const char* extension, void* unknown)
+#else
+static void LoadDetour(void* this_, const char* name, const char* extension)
+#endif
+{
+#ifdef ZESTIRIA
+    __asm
+    {
+        pushad
+        mov eax, [esp]
+        push eax
+        call AddNameHash
+        popad
+        jmp [Load]
+    }
+#else
+    AddNameHash(name, extension);
     Load(this_, name, extension);
+#endif
 }
 
 static void LoadNames(std::string path)
@@ -75,20 +110,29 @@ static void LoadNames(std::string path)
 
 static void Initialize()
 {
-    LoadNames("name_db.txt");
-    NameDB = std::ofstream("name_db.txt", std::ios_base::app);
     DetourTransactionBegin();
     DetourAttach((void**)&Load, &LoadDetour);
     DetourTransactionCommit();
+    LoadNames("name_db.txt");
+    NameDB = std::ofstream("name_db.txt", std::ios_base::app);
 }
 
-DWORD WINAPI DGetCurrentDirectoryA(DWORD nBufferLength, LPSTR lpBuffer)
+#ifdef BERSERIA
+DWORD WINAPI DEarlyFunction(DWORD nBufferLength, LPSTR lpBuffer)
+#else
+HANDLE WINAPI DEarlyFunction(LPSECURITY_ATTRIBUTES lpMutexAttributes, BOOL bInitialOwner, LPCSTR lpName)
+#endif
 {
     Initialize();
     DetourTransactionBegin();
-    DetourDetach((void**)&PGetCurrentDirectoryA, &DGetCurrentDirectoryA);
+    DetourDetach((void**)&PEarlyFunction, &DEarlyFunction);
     DetourTransactionCommit();
+    DetourUpdateThread(GetCurrentThread());
+#ifdef BERSERIA
     return GetCurrentDirectoryA(nBufferLength, lpBuffer);
+#else
+    return CreateMutexA(lpMutexAttributes, bInitialOwner, lpName);
+#endif
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
@@ -96,23 +140,33 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
     if (fdwReason != DLL_PROCESS_ATTACH)
         return TRUE;
 
-    DisableThreadLibraryCalls(hinstDLL);
+    //DisableThreadLibraryCalls(hinstDLL);
     InitializeCriticalSection(&LoadSection);
 
     // Open a debug console
     AllocConsole();
     (void)freopen("CONOUT$", "w", stdout);
     (void)freopen("CONOUT$", "w", stderr);
-    
+
+#ifdef BERSERIA
     // RVAs based on Steam manifest
     // 0336651617463615849: 0x16F3DF0 (latest)
     // 7835388559349787992: 0x16D8560
     *(void**)&Load = (char*)GetModuleHandle(nullptr) + 0x16F3DF0;
+#else // ZESTIRIA
+    // RVAs based on Steam manifest
+    // 3141087997518986971: 0x551130 (latest)
+    *(void**)&Load = (char*)GetModuleHandle(nullptr) + 0x551130;
+#endif
 
-    // Hook GetCurrentDirectoryA so we can run before the game, but after Denuvo
-    *(void**)&PGetCurrentDirectoryA = GetProcAddress(GetModuleHandleA("KERNEL32"), "GetCurrentDirectoryA");
+    // Hook a WinAPI function so we can run before the game, but after Denuvo
     DetourTransactionBegin();
-    DetourAttach((void**)&PGetCurrentDirectoryA, &DGetCurrentDirectoryA);
+#ifdef BERSERIA
+    *(void**)&PEarlyFunction = GetProcAddress(GetModuleHandleA("KERNEL32"), "GetCurrentDirectoryA");
+#else
+    *(void**)&PEarlyFunction = GetProcAddress(GetModuleHandleA("KERNEL32"), "CreateMutexA");
+#endif
+    DetourAttach((void**)&PEarlyFunction, &DEarlyFunction);
     DetourTransactionCommit();
     return TRUE;
 }
