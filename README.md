@@ -8,3 +8,6 @@ The `hexpat` directory contains pattern files for [ImHex](https://github.com/Wer
 
 # TLTool
 A tool for unpacking and repacking `.TLDAT` and `.SCPACK` package files. Support for encrypted TLDAT packages (those that have a FILEHEADER.TOFHDA file) is not yet implemented. `.SCPACK` files contain Lua scripts that implement UI and gameplay elements.
+
+# TO13NameDumper
+A DLL (proxying `version.dll`) that will hook into the game's file loading routines and dump the name of anything it tries to load. It will store these names in a `name_db.txt` file next to the executable, which can be passed to TLTool as a name dictionary to unpack the TLDAT with proper file names.
