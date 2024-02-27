@@ -1,5 +1,6 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Globalization;
 
 namespace TLTool;
 
@@ -34,8 +35,22 @@ public sealed class PackCommand
 
         foreach (string file in Directory.EnumerateFiles(inputs, "*", SearchOption.AllDirectories))
         {
-            var entry = new DataHeaderEntry(new FileInfo(file));
-            header.AddFile(Path.GetFileName(file), entry);
+            var name = Path.GetFileNameWithoutExtension(file);
+            var hash = NameHash.Compute(Path.GetFileName(file));
+
+            if (name.StartsWith('$') && !uint.TryParse(name.AsSpan(1), NumberStyles.HexNumber, null, out hash))
+            {
+                Console.WriteLine($"Error: could not parse hash from '{file}'. Skipping...");
+                continue;
+            }
+
+            if (header.Entries.TryGetValue(hash, out var entry))
+            {
+                Console.WriteLine($"Error: cannot import '{file}' because it conflicts with '{((DataHeaderEntry)entry).FileInfo.FullName}'.");
+                continue;
+            }
+
+            header.AddFile(hash, new DataHeaderEntry(new FileInfo(file)));
         }
 
         using var stream = File.Create(Path.Combine(output, "FILEHEADER.TOFHDB"));
