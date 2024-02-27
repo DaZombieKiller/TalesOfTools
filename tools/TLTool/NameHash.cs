@@ -8,18 +8,22 @@ public static class NameHash
     /// <summary>Computes the hash of the provided span of bytes.</summary>
     public static uint Compute(ReadOnlySpan<byte> name)
     {
-        uint hash = 0;
-
-        foreach (byte b in name)
-            hash = Append(hash, ToUpper(b));
-
-        return hash;
+        return Append(0, name);
     }
 
     /// <summary>Computes the hash of the ASCII representation of the provided string.</summary>
     public static uint Compute(string name)
     {
-        return Compute(Encoding.ASCII.GetBytes(name));
+        return Append(0, Encoding.ASCII.GetBytes(name));
+    }
+
+    /// <summary>Appends the provided span of bytes to the hash.</summary>
+    public static uint Append(uint hash, ReadOnlySpan<byte> data)
+    {
+        foreach (byte b in data)
+            hash = Append(hash, ToUpper(b));
+
+        return hash;
     }
 
     /// <summary>Appends the provided byte to the hash.</summary>
