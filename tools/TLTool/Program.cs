@@ -8,4 +8,5 @@ root.AddCommand(new UpdateNamesCommand().Command);
 root.AddCommand(new ScriptUnpackCommand().Command);
 root.AddCommand(new ScriptPackCommand().Command);
 root.AddCommand(new TextureDdsConvertCommand().Command);
+root.AddCommand(new InsertCommand().Command);
 await root.InvokeAsync(args);

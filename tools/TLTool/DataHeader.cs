@@ -60,6 +60,18 @@ public sealed partial class DataHeader
         _entries.Add(hash, entry);
     }
 
+    /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
+    public void AddOrUpdateFile(string name, IDataHeaderEntry entry)
+    {
+        AddOrUpdateFile(NameHash.Compute(name), entry);
+    }
+
+    /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
+    public void AddOrUpdateFile(uint hash, IDataHeaderEntry entry)
+    {
+        _entries[hash] = entry;
+    }
+
     /// <summary>Writes the header and all of its entries to the specified header and data streams.</summary>
     public unsafe void Write(BinaryWriter writer, Stream data, bool is32Bit)
     {
@@ -102,6 +114,14 @@ public sealed partial class DataHeader
 
                 bytes[..length].CopyTo(new Span<byte>(file.ExtensionBuffer, RawFile.MaxExtensionLength));
                 file.ExtensionLength = (byte)length;
+            }
+
+            if (entry is InternalHeaderEntry internalEntry)
+            {
+                file.CompressedLength = (ulong)internalEntry.CompressedLength;
+                file.Offset = (ulong)internalEntry.Offset;
+                file.Write(writer);
+                continue;
             }
 
             using (var stream = entry.OpenRead())
