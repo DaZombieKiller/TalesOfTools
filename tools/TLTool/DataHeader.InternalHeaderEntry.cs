@@ -46,6 +46,7 @@ public sealed partial class DataHeader
                 {
                     reader.ReadByte(); // unknown
                     var compressionType = reader.ReadByte();
+                    reader.ReadUInt16(); // unknown
                     var compressedSize = reader.ReadUInt32();
                     var uncompressedSize = reader.ReadUInt32();
                     reader.ReadUInt32(); // unknown
@@ -70,17 +71,19 @@ public sealed partial class DataHeader
 
                         for (int i = 0; i < blockSizes.Length; i++)
                         {
+                            var length = int.Min((int)remaining, 0x10000);
+
                             if (blockSizes[i] != 0)
-                                decoder.Code(stream, decoded, blockSizes[i], uint.Min(remaining, 0x10000), null);
+                                decoder.Code(stream, decoded, blockSizes[i], (uint)length, null);
                             else
                             {
-                                var length = int.Min((int)remaining, 0x10000);
                                 var buffer = ArrayPool<byte>.Shared.Rent(length);
                                 stream.ReadExactly(buffer, 0, length);
                                 decoded.Write(buffer, 0, length);
                                 ArrayPool<byte>.Shared.Return(buffer);
-                                remaining -= (uint)length;
                             }
+
+                            remaining -= (uint)length;
                         }
 
                         stream.Dispose();
