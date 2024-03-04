@@ -7,6 +7,9 @@ public sealed partial class DataHeader
 {
     private readonly Dictionary<uint, IDataHeaderEntry> _entries;
 
+    /// <summary>The creation time of the header file.</summary>
+    public DateTime CreationTime { get; set; } = DateTime.UtcNow;
+
     /// <summary>The entries contained in the <see cref="DataHeader"/>.</summary>
     public IReadOnlyDictionary<uint, IDataHeaderEntry> Entries { get; }
 
@@ -22,6 +25,7 @@ public sealed partial class DataHeader
     public void ReadFrom(BinaryReader reader, FileInfo data, bool is32Bit)
     {
         var header = new RawHeader(reader, is32Bit);
+        CreationTime = DateTime.FromFileTimeUtc((long)header.CreationTime);
 
         // We could read the entries array here, but it's merely a sorted lookup table
         // into the files array, so assuming we have a well-formed file, we don't really
@@ -77,6 +81,9 @@ public sealed partial class DataHeader
     {
         var header = new RawHeader();
         header.Write(writer, is32Bit);
+
+        // Update the creation time
+        header.CreationTime = (ulong)CreationTime.ToFileTimeUtc();
 
         // The entries array is sorted by hash so that the engine can perform a binary search on it.
         var entries = _entries.ToArray();
