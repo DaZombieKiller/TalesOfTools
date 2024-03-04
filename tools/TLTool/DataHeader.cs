@@ -5,20 +5,11 @@ namespace TLTool;
 /// <summary>A data file's header.</summary>
 public sealed partial class DataHeader
 {
-    private readonly Dictionary<uint, IDataHeaderEntry> _entries;
-
     /// <summary>The creation time of the header file.</summary>
     public DateTime CreationTime { get; set; } = DateTime.UtcNow;
 
     /// <summary>The entries contained in the <see cref="DataHeader"/>.</summary>
-    public IReadOnlyDictionary<uint, IDataHeaderEntry> Entries { get; }
-
-    /// <summary>Initializes a new <see cref="DataHeader"/> instance.</summary>
-    public DataHeader()
-    {
-        _entries = new Dictionary<uint, IDataHeaderEntry>();
-        Entries  = _entries.AsReadOnly();
-    }
+    public Dictionary<uint, IDataHeaderEntry> Entries { get; } = [];
 
     /// <summary>Reads the entries from the specified stream into the <see cref="DataHeader"/>.</summary>
     /// <param name="data">The data file containing the data for the entries described in the stream.</param>
@@ -43,7 +34,7 @@ public sealed partial class DataHeader
         {
             reader.ReadUInt32();
             var file = files[reader.ReadUInt32()];
-            _entries.Add(file.Hash, new InternalHeaderEntry(data, Encoding.ASCII.GetString(file.Extension))
+            Entries.Add(file.Hash, new InternalHeaderEntry(data, Encoding.ASCII.GetString(file.Extension))
             {
                 Offset = (long)file.Offset,
                 Length = (long)file.Length,
@@ -61,7 +52,7 @@ public sealed partial class DataHeader
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
     public void AddFile(uint hash, IDataHeaderEntry entry)
     {
-        _entries.Add(hash, entry);
+        Entries.Add(hash, entry);
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
@@ -73,7 +64,7 @@ public sealed partial class DataHeader
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
     public void AddOrUpdateFile(uint hash, IDataHeaderEntry entry)
     {
-        _entries[hash] = entry;
+        Entries[hash] = entry;
     }
 
     /// <summary>Writes the header and all of its entries to the specified header and data streams.</summary>
@@ -86,7 +77,7 @@ public sealed partial class DataHeader
         header.CreationTime = (ulong)CreationTime.ToFileTimeUtc();
 
         // The entries array is sorted by hash so that the engine can perform a binary search on it.
-        var entries = _entries.ToArray();
+        var entries = Entries.ToArray();
         Array.Sort(entries, new KeyComparer<uint, IDataHeaderEntry>());
 
         header.FileHashArrayOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseEntryOffset(is32Bit);
