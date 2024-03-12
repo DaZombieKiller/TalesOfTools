@@ -1,27 +1,34 @@
 ﻿namespace TLTool;
 
-/// <summary>A data header entry referencing an external file.</summary>
-public sealed class DataHeaderEntry : IDataHeaderEntry
+/// <summary>An entry in a data file header.</summary>
+public sealed class DataHeaderEntry
 {
-    /// <summary>The file used as the source for the entry's data.</summary>
-    public FileInfo FileInfo { get; }
+    /// <summary>The source for the entry's data.</summary>
+    public IDataSource DataSource { get; }
 
-    /// <inheritdoc/>
-    public long Length => FileInfo.Length;
-
-    /// <inheritdoc/>
-    public string Extension => FileInfo.Extension.TrimStart('.');
+    /// <summary>The file extension for the entry, excluding a leading period.</summary>
+    public string Extension { get; }
 
     /// <summary>Initializes a new <see cref="DataHeaderEntry"/> instance.</summary>
     public DataHeaderEntry(FileInfo file)
     {
         ArgumentNullException.ThrowIfNull(file);
-        FileInfo = file;
+        DataSource = new FileDataSource(file);
+        Extension  = GetExtension(file.Extension);
+
+        static string GetExtension(string extension)
+        {
+            if (string.IsNullOrEmpty(extension))
+                return extension;
+
+            return extension[1..];
+        }
     }
 
-    /// <inheritdoc/>
-    public Stream OpenRead()
+    /// <summary>Initializes a new <see cref="DataHeaderEntry"/> instance.</summary>
+    public DataHeaderEntry(IDataSource source, string extension)
     {
-        return FileInfo.OpenRead();
+        DataSource = source;
+        Extension  = extension;
     }
 }

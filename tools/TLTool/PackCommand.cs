@@ -46,7 +46,7 @@ public sealed class PackCommand
 
             if (header.Entries.TryGetValue(hash, out var entry))
             {
-                Console.WriteLine($"Error: cannot import '{file}' because it conflicts with '{((DataHeaderEntry)entry).FileInfo.FullName}'.");
+                Console.WriteLine($"Error: cannot import '{file}' because it conflicts with '{((FileDataSource)entry.DataSource).File.FullName}'.");
                 continue;
             }
 

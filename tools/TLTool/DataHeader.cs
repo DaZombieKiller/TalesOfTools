@@ -9,7 +9,7 @@ public sealed partial class DataHeader
     public DateTime CreationTime { get; set; } = DateTime.UtcNow;
 
     /// <summary>The entries contained in the <see cref="DataHeader"/>.</summary>
-    public Dictionary<uint, IDataHeaderEntry> Entries { get; } = [];
+    public Dictionary<uint, DataHeaderEntry> Entries { get; } = [];
 
     /// <summary>Reads the entries from the specified stream into the <see cref="DataHeader"/>.</summary>
     /// <param name="data">The data file containing the data for the entries described in the stream.</param>
@@ -34,35 +34,32 @@ public sealed partial class DataHeader
         {
             reader.ReadUInt32();
             var file = files[reader.ReadUInt32()];
-            Entries.Add(file.Hash, new InternalHeaderEntry(data, Encoding.ASCII.GetString(file.Extension))
-            {
-                Offset = (long)file.Offset,
-                Length = (long)file.Length,
-                CompressedLength = (long)file.CompressedLength,
-            });
+            var source = new TLFileDataSource(data, (long)file.Offset, (long)file.Length, (long)file.CompressedLength);
+            var entry = new DataHeaderEntry(source, Encoding.ASCII.GetString(file.Extension));
+            Entries.Add(file.Hash, entry);
         }
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
-    public void AddFile(string name, IDataHeaderEntry entry)
+    public void AddFile(string name, DataHeaderEntry entry)
     {
         AddFile(NameHash.Compute(name), entry);
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
-    public void AddFile(uint hash, IDataHeaderEntry entry)
+    public void AddFile(uint hash, DataHeaderEntry entry)
     {
         Entries.Add(hash, entry);
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
-    public void AddOrUpdateFile(string name, IDataHeaderEntry entry)
+    public void AddOrUpdateFile(string name, DataHeaderEntry entry)
     {
         AddOrUpdateFile(NameHash.Compute(name), entry);
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
-    public void AddOrUpdateFile(uint hash, IDataHeaderEntry entry)
+    public void AddOrUpdateFile(uint hash, DataHeaderEntry entry)
     {
         Entries[hash] = entry;
     }
@@ -78,7 +75,7 @@ public sealed partial class DataHeader
 
         // The entries array is sorted by hash so that the engine can perform a binary search on it.
         var entries = Entries.ToArray();
-        Array.Sort(entries, new KeyComparer<uint, IDataHeaderEntry>());
+        Array.Sort(entries, new KeyComparer<uint, DataHeaderEntry>());
 
         header.FileHashArrayOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseEntryOffset(is32Bit);
         header.FileHashArrayLength  = (uint)entries.Length;
@@ -98,8 +95,8 @@ public sealed partial class DataHeader
             {
                 Hash = hash,
                 Offset = (ulong)data.Position,
-                Length = (ulong)entry.Length,
-                CompressedLength = (ulong)entry.Length,
+                Length = (ulong)entry.DataSource.Length,
+                CompressedLength = (ulong)entry.DataSource.Length,
             };
 
             fixed (char* extension = entry.Extension)
@@ -114,7 +111,7 @@ public sealed partial class DataHeader
                 file.ExtensionLength = (byte)length;
             }
 
-            if (entry is InternalHeaderEntry internalEntry)
+            if (entry.DataSource is TLFileDataSource internalEntry)
             {
                 file.CompressedLength = (ulong)internalEntry.CompressedLength;
                 file.Offset = (ulong)internalEntry.Offset;
@@ -122,7 +119,7 @@ public sealed partial class DataHeader
                 continue;
             }
 
-            using (var stream = entry.OpenRead())
+            using (var stream = entry.DataSource.OpenRead())
                 stream.CopyTo(data);
 
             file.Write(writer);

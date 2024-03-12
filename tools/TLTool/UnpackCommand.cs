@@ -34,7 +34,7 @@ public sealed class UnpackCommand
     public void Execute(InvocationContext context)
     {
         var header = new DataHeader();
-        var mapper = new Dictionary<uint, string>();
+        var mapper = new NameDictionary();
         var output = context.ParseResult.GetValueForArgument(OutputPath);
         var is32Bit = context.ParseResult.GetValueForOption(Is32Bit);
         var bigEndian = context.ParseResult.GetValueForOption(IsBigEndian);
@@ -44,26 +44,14 @@ public sealed class UnpackCommand
             header.ReadFrom(reader, new FileInfo(context.ParseResult.GetValueForArgument(TLFilePath)), is32Bit);
 
         if (context.ParseResult.HasOption(FileDictionaryPath))
-        {
-            using var reader = new StreamReader(context.ParseResult.GetValueForOption(FileDictionaryPath)!);
-
-            for (string? line; (line = reader.ReadLine()) is { };)
-            {
-                if (string.IsNullOrEmpty(line))
-                    continue;
-
-                mapper.TryAdd(NameHash.Compute(line), line);
-            }
-        }
+            mapper.AddNamesFromFile(context.ParseResult.GetValueForOption(FileDictionaryPath)!);
 
         foreach (var (hash, entry) in header.Entries)
         {
-            if (!mapper.TryGetValue(hash, out string? name))
-                name = $"${hash:X8}.{entry.Extension}";
-
+            var name = mapper.GetNameOrFallback(hash, entry.Extension);
             Directory.CreateDirectory(Path.Combine(output, entry.Extension));
             using var stream = File.Create(Path.Combine(output, entry.Extension, name));
-            using var source = entry.OpenRead();
+            using var source = entry.DataSource.OpenRead();
             source.CopyTo(stream);
         }
     }

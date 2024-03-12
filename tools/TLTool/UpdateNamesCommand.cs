@@ -21,18 +21,8 @@ public sealed class UpdateNamesCommand
 
     public void Execute(InvocationContext context)
     {
-        var mapper = new Dictionary<uint, string>();
-
-        using (var reader = new StreamReader(context.ParseResult.GetValueForArgument(FileDictionaryPath)))
-        {
-            for (string? line; (line = reader.ReadLine()) is { };)
-            {
-                if (string.IsNullOrEmpty(line))
-                    continue;
-
-                mapper.TryAdd(NameHash.Compute(line), line);
-            }
-        }
+        var mapper = new NameDictionary();
+        mapper.AddNamesFromFile(context.ParseResult.GetValueForArgument(FileDictionaryPath));
 
         foreach (string path in Directory.EnumerateFiles(context.ParseResult.GetValueForArgument(FilesPath), "$*.*", SearchOption.AllDirectories))
         {
