@@ -1,15 +1,24 @@
-﻿namespace TLTool;
+﻿using System.Diagnostics.CodeAnalysis;
 
-public sealed class NameDictionary : Dictionary<uint, string>
+namespace TLTool;
+
+public sealed class NameDictionary
 {
+    private readonly Dictionary<uint, string> _names = [];
+
     public bool TryAdd(string name)
     {
-        return TryAdd(NameHash.Compute(name), name);
+        return _names.TryAdd(NameHash.Compute(name), name);
+    }
+
+    public bool TryGetValue(uint hash, [NotNullWhen(true)] out string? name)
+    {
+        return _names.TryGetValue(hash, out name);
     }
 
     public string GetNameOrFallback(uint hash, string extension)
     {
-        if (TryGetValue(hash, out string? name))
+        if (_names.TryGetValue(hash, out string? name))
             return name;
 
         return $"${hash:X8}.{extension}";
