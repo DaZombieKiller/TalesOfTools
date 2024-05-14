@@ -8,6 +8,10 @@ public sealed class NameDictionary
 
     public bool TryAdd(string name)
     {
+        // Don't add placeholder hash names
+        if (name.StartsWith('$'))
+            return false;
+
         return _names.TryAdd(NameHash.Compute(name), name);
     }
 
