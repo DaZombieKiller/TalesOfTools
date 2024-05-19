@@ -31,10 +31,13 @@ public sealed class UpdateNamesCommand
             if (!name.StartsWith('$'))
                 continue;
 
+            if (Path.GetExtension(path) is not { Length: > 1 } extension)
+                continue;
+
             if (!uint.TryParse(name.AsSpan(1), NumberStyles.HexNumber, null, out uint hash))
                 continue;
 
-            if (mapper.TryGetValue(hash, out name))
+            if (mapper.TryGetValue(hash, extension[1..], out name))
             {
                 try
                 {
