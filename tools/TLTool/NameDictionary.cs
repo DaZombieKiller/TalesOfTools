@@ -21,7 +21,7 @@ public sealed class NameDictionary
             return false;
 
         var hash = NameHash.Compute(name);
-        return _names.TryAdd((hash, extension), name);
+        return _names.TryAdd((hash, extension[1..]), name);
     }
 
     public bool TryGetValue(uint hash, string extension, [NotNullWhen(true)] out string? name)
