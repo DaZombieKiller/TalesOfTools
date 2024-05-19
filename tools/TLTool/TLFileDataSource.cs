@@ -9,7 +9,7 @@ namespace TLTool;
 public sealed class TLFileDataSource : IDataSource
 {
     /// <summary>The data file containing the referenced data.</summary>
-    public FileInfo? File { get; }
+    public FileInfo? File { get; set; }
 
     /// <summary>The offset into <see cref="File"/> where the referenced data is located.</summary>
     public long Offset { get; }
