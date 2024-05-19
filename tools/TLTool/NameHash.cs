@@ -26,6 +26,12 @@ public static class NameHash
         return hash;
     }
 
+    /// <summary>Appends the ASCII representation of the provided string to the hash.</summary>
+    public static uint Append(uint hash, string data)
+    {
+        return Append(hash, Encoding.ASCII.GetBytes(data));
+    }
+
     /// <summary>Appends the provided byte to the hash.</summary>
     private static uint Append(uint hash, byte b)
     {
