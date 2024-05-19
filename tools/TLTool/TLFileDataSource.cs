@@ -9,7 +9,7 @@ namespace TLTool;
 public sealed class TLFileDataSource : IDataSource
 {
     /// <summary>The data file containing the referenced data.</summary>
-    public FileInfo File { get; }
+    public FileInfo? File { get; }
 
     /// <summary>The offset into <see cref="File"/> where the referenced data is located.</summary>
     public long Offset { get; }
@@ -21,9 +21,8 @@ public sealed class TLFileDataSource : IDataSource
     public long CompressedLength { get; }
 
     /// <summary>Initializes a new <see cref="TLFileDataSource"/> instance.</summary>
-    public TLFileDataSource(FileInfo file, long offset, long length, long compressedLength)
+    public TLFileDataSource(FileInfo? file, long offset, long length, long compressedLength)
     {
-        ArgumentNullException.ThrowIfNull(file);
         File = file;
         Offset = offset;
         Length = length;
@@ -33,7 +32,16 @@ public sealed class TLFileDataSource : IDataSource
     /// <inheritdoc/>
     public Stream OpenRead()
     {
-        Stream stream = File.OpenRead();
+        if (File is null)
+            throw new InvalidOperationException();
+
+        return OpenRead(File);
+    }
+
+    /// <inheritdoc cref="OpenRead()"/>
+    public Stream OpenRead(FileInfo file)
+    {
+        Stream stream = file.OpenRead();
         stream = new SubReadStream(stream, Offset, CompressedLength);
 
         if (Length != CompressedLength)

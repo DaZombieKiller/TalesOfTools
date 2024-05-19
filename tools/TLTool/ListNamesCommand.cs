@@ -34,7 +34,7 @@ public sealed class ListNamesCommand
 
         using (var stream = File.OpenRead(context.ParseResult.GetValueForArgument(HeaderPath)))
         using (var reader = bigEndian ? new BigEndianBinaryReader(stream) : new BinaryReader(stream))
-            header.ReadFrom(reader, new FileInfo("."), is32Bit);
+            header.ReadFrom(reader, is32Bit);
 
         // Sort the entries by data offset, which can reveal the original filesystem folder groupings.
         var entries = header.Entries.Where(pair => pair.Value.DataSource is TLFileDataSource).ToArray();

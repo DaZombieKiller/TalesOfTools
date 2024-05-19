@@ -12,8 +12,14 @@ public sealed partial class DataHeader
     public Dictionary<uint, DataHeaderEntry> Entries { get; } = [];
 
     /// <summary>Reads the entries from the specified stream into the <see cref="DataHeader"/>.</summary>
+    public void ReadFrom(BinaryReader reader, bool is32Bit)
+    {
+        ReadFrom(reader, data: null, is32Bit);
+    }
+
+    /// <summary>Reads the entries from the specified stream into the <see cref="DataHeader"/>.</summary>
     /// <param name="data">The data file containing the data for the entries described in the stream.</param>
-    public void ReadFrom(BinaryReader reader, FileInfo data, bool is32Bit)
+    public void ReadFrom(BinaryReader reader, FileInfo? data, bool is32Bit)
     {
         var header = new RawHeader(reader, is32Bit);
         CreationTime = DateTime.FromFileTimeUtc((long)header.CreationTime);
