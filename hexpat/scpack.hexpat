@@ -3,8 +3,8 @@
 // SCPACK (SCPK) Format
 //
 
-#include <std/core.pat>
-#include <std/mem.pat>
+import std.core;
+import std.mem;
 
 struct Script
 {
