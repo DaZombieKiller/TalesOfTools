@@ -6,6 +6,12 @@ namespace TLTool;
 public static class NameHash
 {
     /// <summary>Computes the hash of the provided span of bytes.</summary>
+    public static uint Compute(ReadOnlySpan<byte> name, bool ignoreCase)
+    {
+        return Append(0, name, ignoreCase);
+    }
+
+    /// <summary>Computes the hash of the provided span of bytes.</summary>
     public static uint Compute(ReadOnlySpan<byte> name)
     {
         return Append(0, name);
@@ -17,8 +23,53 @@ public static class NameHash
         return Append(0, Encoding.ASCII.GetBytes(name));
     }
 
+    /// <summary>Computes the hash of the ASCII representation of the provided string.</summary>
+    public static uint Compute(string name, bool ignoreCase)
+    {
+        return Append(0, Encoding.ASCII.GetBytes(name), ignoreCase);
+    }
+
     /// <summary>Appends the provided span of bytes to the hash.</summary>
     public static uint Append(uint hash, ReadOnlySpan<byte> data)
+    {
+        foreach (byte b in data)
+            hash = Append(hash, b);
+
+        return hash;
+    }
+
+    /// <summary>Appends the provided span of bytes to the hash.</summary>
+    public static uint Append(uint hash, string data)
+    {
+        return Append(hash, Encoding.ASCII.GetBytes(data));
+    }
+
+    /// <summary>Appends the provided span of bytes to the hash.</summary>
+    public static uint Append(uint hash, ReadOnlySpan<byte> data, bool ignoreCase)
+    {
+        return ignoreCase ? AppendIgnoreCase(hash, data) : Append(hash, data);
+    }
+
+    /// <summary>Appends the provided span of bytes to the hash.</summary>
+    public static uint Append(uint hash, string data, bool ignoreCase)
+    {
+        return ignoreCase ? AppendIgnoreCase(hash, data) : Append(hash, data);
+    }
+
+    /// <summary>Computes the hash of the provided span of ASCII characters in uppercase form.</summary>
+    public static uint ComputeIgnoreCase(ReadOnlySpan<byte> name)
+    {
+        return AppendIgnoreCase(0, name);
+    }
+
+    /// <summary>Computes the hash of the uppercase ASCII representation of the provided string.</summary>
+    public static uint ComputeIgnoreCase(string name)
+    {
+        return AppendIgnoreCase(0, Encoding.ASCII.GetBytes(name));
+    }
+
+    /// <summary>Appends the provided span of ASCII characters in uppercase form to the hash.</summary>
+    public static uint AppendIgnoreCase(uint hash, ReadOnlySpan<byte> data)
     {
         foreach (byte b in data)
             hash = Append(hash, ToUpper(b));
@@ -26,10 +77,10 @@ public static class NameHash
         return hash;
     }
 
-    /// <summary>Appends the ASCII representation of the provided string to the hash.</summary>
-    public static uint Append(uint hash, string data)
+    /// <summary>Appends the uppercase ASCII representation of the provided string to the hash.</summary>
+    public static uint AppendIgnoreCase(uint hash, string data)
     {
-        return Append(hash, Encoding.ASCII.GetBytes(data));
+        return AppendIgnoreCase(hash, Encoding.ASCII.GetBytes(data));
     }
 
     /// <summary>Appends the provided byte to the hash.</summary>

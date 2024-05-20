@@ -1,6 +1,5 @@
 ﻿using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.CommandLine.Parsing;
 
 namespace TLTool;
 
@@ -14,10 +13,14 @@ public sealed class ScriptPackCommand
 
     public Option<bool> BigEndian { get; } = new("--big-endian", "Whether to write a big-endian file for PS3");
 
+    public Option<bool> CaseSensitive { get; } = new("--case-sensitive", "Whether to use case-sensitive hashes (Zestiria)");
+
     public ScriptPackCommand()
     {
         Command.AddArgument(InputPath);
         Command.AddArgument(OutputPath);
+        Command.AddOption(BigEndian);
+        Command.AddOption(CaseSensitive);
         Handler.SetHandler(Command, Execute);
     }
 
@@ -34,10 +37,6 @@ public sealed class ScriptPackCommand
         }
 
         using var stream = File.Create(output);
-
-        if (context.ParseResult.HasOption(BigEndian))
-            scpack.Write(stream, bigEndian: context.ParseResult.GetValueForOption(BigEndian));
-        else
-            scpack.Write(stream, bigEndian: false);
+        scpack.Write(stream, context.ParseResult.GetValueForOption(BigEndian), !context.ParseResult.GetValueForOption(CaseSensitive));
     }
 }

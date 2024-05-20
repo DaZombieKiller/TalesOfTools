@@ -49,7 +49,7 @@ public sealed partial class DataHeader
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
     public void AddFile(string name, DataHeaderEntry entry)
     {
-        AddFile(NameHash.Compute(name), entry);
+        AddFile(NameHash.ComputeIgnoreCase(name), entry);
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
@@ -61,7 +61,7 @@ public sealed partial class DataHeader
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
     public void AddOrUpdateFile(string name, DataHeaderEntry entry)
     {
-        AddOrUpdateFile(NameHash.Compute(name), entry);
+        AddOrUpdateFile(NameHash.ComputeIgnoreCase(name), entry);
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
@@ -100,7 +100,7 @@ public sealed partial class DataHeader
             var file = new RawFile
             {
                 Hash = hash,
-                Offset = (ulong)data.Position,
+                Offset = (ulong)data.Length,
                 Length = (ulong)entry.DataSource.Length,
                 CompressedLength = (ulong)entry.DataSource.Length,
             };
@@ -124,6 +124,8 @@ public sealed partial class DataHeader
                 file.Write(writer);
                 continue;
             }
+
+            data.Position = (long)file.Offset;
 
             using (var stream = entry.DataSource.OpenRead())
                 stream.CopyTo(data);

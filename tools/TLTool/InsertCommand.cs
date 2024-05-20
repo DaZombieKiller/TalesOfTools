@@ -42,7 +42,7 @@ public sealed class InsertCommand
         foreach (string file in Directory.EnumerateFiles(inputs, "*", SearchOption.AllDirectories))
         {
             var name = Path.GetFileNameWithoutExtension(file);
-            var hash = NameHash.Compute(Path.GetFileName(file));
+            var hash = NameHash.ComputeIgnoreCase(Path.GetFileName(file));
 
             if (name.StartsWith('$') && !uint.TryParse(name.AsSpan(1), NumberStyles.HexNumber, null, out hash))
             {
