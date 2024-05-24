@@ -7,13 +7,19 @@ public sealed class TextureDdsConvertCommand
 {
     public Command Command { get; } = new("tex2dds");
 
-    public Argument<string> MetaPath { get; } = new("meta-path", "Path to the TOTEXB_D file");
+    public Argument<string> MetaPath { get; } = new("meta-path", "Path to the TOTEXB/TOTEXB_D file");
 
-    public Argument<string> DataPath { get; } = new("data-path", "Path to the TOTEXP_P file");
+    public Argument<string> DataPath { get; } = new("data-path", "Path to the TOTEXP/TOTEXP_P file");
 
     public Argument<string> OutputPath { get; } = new("output-path", "Path of resulting DDS file");
 
     public Option<string> Format { get; } = new("--platform", "Platform that the texture comes from [pc (default), ps3, ps4]");
+
+    // Xillia
+    private const uint MTEX = 'M' | ('T' << 8) | ('E' << 16) | ('X' << 24);
+
+    // Zestiria, Berseria
+    private const uint DPDF = 'D' | ('P' << 8) | ('D' << 16) | ('F' << 24);
 
     public TextureDdsConvertCommand()
     {
@@ -26,35 +32,91 @@ public sealed class TextureDdsConvertCommand
 
     public void Execute(InvocationContext context)
     {
-        var platform = context.ParseResult.GetValueForOption(Format) ?? "pc";
         var output = context.ParseResult.GetValueForArgument(OutputPath);
         var meta = context.ParseResult.GetValueForArgument(MetaPath);
         var data = File.ReadAllBytes(context.ParseResult.GetValueForArgument(DataPath));
 
-        if (platform == "pc")
+        var platform = (context.ParseResult.GetValueForOption(Format) ?? "pc") switch
+        {
+            "pc" => Platform.PC,
+            "ps3" => Platform.PS3,
+            "ps4" => Platform.PS4,
+            _ => Platform.None
+        };
+
+        if (platform == Platform.PC)
         {
             // On PC, the textures are already in DDS format.
             // They just have some kind of 4 byte value before it.
             File.WriteAllBytes(output, data[4..]);
         }
-        else if (platform == "ps3")
+        else if (platform == Platform.PS3)
         {
-            throw new NotSupportedException("PS3 textures are not yet supported.");
+            using var stream = File.OpenRead(meta);
+            using var reader = new BigEndianBinaryReader(stream);
+
+            // Determine format
+            var isMTex = stream.ReadUInt32LittleEndian() == MTEX;
+
+            // The format, width and height are located at offset 0x0D in TOTEXB.
+            stream.Position = isMTex ? 0x0D : 0x1D;
+            var format = (PS3TextureFormat)reader.ReadByte();
+            var width = reader.ReadUInt16();
+            var height = reader.ReadUInt16();
+
+            using var writer = new BinaryWriter(File.Create(output));
+            var header = new DdsHeader
+            {
+                Width = width,
+                Height = height,
+                Flags = 0x1007, // DDS_HEADER_FLAGS_TEXTURE
+                MipMapCount = 1,
+            };
+
+            if (format == PS3TextureFormat.DXT1)
+            {
+                header.PitchOrLinearSize = (uint)width * height;
+                header.PixelFormat = new DdsPixelFormat
+                {
+                    Flags = 0x4, // DDPF_FOURCC
+                    FourCC = GetFourCC(TextureFormat.DXT1)
+                };
+            }
+            else if (format == PS3TextureFormat.ARGB)
+            {
+                for (int i = 0; i < data.Length; i += 4)
+                    data.AsSpan(i, 4).Reverse();
+
+                header.PitchOrLinearSize = (uint)width * 4;
+                header.PixelFormat = new DdsPixelFormat
+                {
+                    Flags = 0x1 | 0x40, // DDPF_ALPHAPIXELS | DDPF_RGB
+                    RGBBitCount = 32,
+                    ABitMask = 0xFF000000,
+                    RBitMask = 0x00FF0000,
+                    GBitMask = 0x0000FF00,
+                    BBitMask = 0x000000FF,
+                };
+            }
+
+            header.Write(writer);
+            writer.Write(data);
         }
-        else if (platform == "ps4")
+        else if (platform == Platform.PS4)
         {
             var buffer = new byte[data.Length];
-            using var reader = new BinaryReader(File.OpenRead(meta));
+            using var stream = File.OpenRead(meta);
+            using var reader = new BinaryReader(stream);
 
-            // The format, width and height are located at offset 0x1D.
-            reader.BaseStream.Position = 0x1D;
+            // The format, width and height are located at offset 0x1D in TOTEXB_D.
+            stream.Position = 0x1D;
             var format = (TextureFormat)reader.ReadByte();
             var width = reader.ReadUInt16();
             var height = reader.ReadUInt16();
 
             // Un-swizzle texture data.
             OrbisUnSwizzle(data, buffer, width, height, blockSize: GetBlockSize(format));
-
+            
             using var writer = new BinaryWriter(File.Create(output));
             var header       = new DdsHeader
             {
@@ -79,10 +141,24 @@ public sealed class TextureDdsConvertCommand
         }
     }
 
+    private enum Platform
+    {
+        None,
+        PC,
+        PS3,
+        PS4,
+    }
+
     private enum TextureFormat
     {
         DXT5 = 1,
         DXT1 = 3
+    }
+
+    private enum PS3TextureFormat
+    {
+        ARGB = 1,
+        DXT1 = 3,
     }
 
     private static int GetBlockSize(TextureFormat format)
@@ -99,14 +175,14 @@ public sealed class TextureDdsConvertCommand
     {
         return format switch
         {
-            TextureFormat.DXT5 => 0x35545844,
-            TextureFormat.DXT1 => 0x31545844,
+            TextureFormat.DXT5 => 'D' | ('X' << 8) | ('T' << 16) | ('5' << 24),
+            TextureFormat.DXT1 => 'D' | ('X' << 8) | ('T' << 16) | ('1' << 24),
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }
 
     // Swizzle code from PDTools https://github.com/Nenkai/PDTools/blob/master/PDTools.Files/Textures/PS4/OrbisTexture.cs#L101
-    private static void OrbisUnSwizzle(Span<byte> input, Span<byte> output, int width, int height, int blockSize)
+    private static void OrbisUnSwizzle(ReadOnlySpan<byte> input, Span<byte> output, int width, int height, int blockSize)
     {
         var heightTexels = height / 4;
         var heightTexelsAligned = (heightTexels + 7) / 8;
