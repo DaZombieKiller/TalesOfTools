@@ -11,4 +11,5 @@ root.AddCommand(new TextureDdsConvertCommand().Command);
 root.AddCommand(new InsertCommand().Command);
 root.AddCommand(new ListNamesCommand().Command);
 root.AddCommand(new ListHashesCommand().Command);
+root.AddCommand(new AnalyzeNamesCommand().Command);
 await root.InvokeAsync(Environment.CommandLine);
