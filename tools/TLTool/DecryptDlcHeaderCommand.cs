@@ -59,7 +59,7 @@ public sealed class DecryptDlcHeaderCommand
             int temp = BinaryPrimitives.ReadInt32LittleEndian(span);
             BinaryPrimitives.WriteInt32LittleEndian(span, temp ^ key);
             key ^= span[1] | (span[3] << 8) | (span[0] << 16) | (span[2] << 24);
-            key = 'A' * key + (key >>> 2) - 0x61C88647;
+            key += (key << 6) + (key >>> 2) - 0x61C88647;
         }
 
         for (; i < data.Length; i++)
