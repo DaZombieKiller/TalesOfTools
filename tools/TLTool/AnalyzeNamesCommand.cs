@@ -37,8 +37,8 @@ public sealed class AnalyzeNamesCommand
 
         mapper.AddNamesFromFile(context.ParseResult.GetValueForArgument(FileDictionaryPath));
         var entriesNamed = 0;
-        var longestExtension = 0;
-        int longestCount = data.Entries.Count.ToString().Length;
+        var longestExtension = "Type".Length;
+        int longestCount = int.Max(data.Entries.Count.ToString().Length, "Count".Length);
         var filesByExtension = new Dictionary<string, int>();
         var namedByExtension = new Dictionary<string, int>();
 
