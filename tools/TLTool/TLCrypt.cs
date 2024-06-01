@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 
 namespace TLTool;
 
@@ -45,21 +46,18 @@ public static class TLCrypt
         int i;
         int n = data.Length - (data.Length % sizeof(ulong));
 
-        fixed (byte* pointer = data)
+        for (i = 0; i < n; i += sizeof(ulong))
         {
-            for (i = 0; i < n; i += sizeof(ulong))
-            {
-                ulong temp = Unsafe.ReadUnaligned<ulong>(pointer + i);
-                Unsafe.WriteUnaligned(pointer + i, temp ^ key);
+            ulong temp = BinaryPrimitives.ReadUInt64LittleEndian(data[i..]);
+            BinaryPrimitives.WriteUInt64LittleEndian(data[i..], temp ^ key);
 
-                if (!encrypt)
-                    temp ^= key;
+            if (!encrypt)
+                temp ^= key;
 
-                key ^= 0x4E3362BF7A4C7C26;
-                key ^= key << 13;
-                key ^= key >>> 7;
-                key ^= (key << 17) ^ (ulong)((int)temp | (int)(temp >>> 32));
-            }
+            key ^= 0x4E3362BF7A4C7C26;
+            key ^= key << 13;
+            key ^= key >>> 7;
+            key ^= (key << 17) ^ (ulong)((int)temp | (int)(temp >>> 32));
         }
 
         for (; i < data.Length; i++)
