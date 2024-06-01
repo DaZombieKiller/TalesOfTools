@@ -91,8 +91,8 @@ public unsafe sealed class ScriptPackage
 
         int CompareNameHashes(KeyValuePair<string, byte[]> a, KeyValuePair<string, byte[]> b)
         {
-            var hash1 = NameHash.Compute(a.Key, hashIgnoreCase);
-            var hash2 = NameHash.Compute(b.Key, hashIgnoreCase);
+            var hash1 = TLHash.Compute(a.Key, hashIgnoreCase);
+            var hash2 = TLHash.Compute(b.Key, hashIgnoreCase);
             return hash1.CompareTo(hash2);
         }
 
@@ -109,7 +109,7 @@ public unsafe sealed class ScriptPackage
             // Update entry.
             stream.WriteAlign(Alignment);
             entries[i].Offset = (uint)(stream.Position - (sizeof(Header) + sizeof(Entry) * i));
-            entries[i].Hash = NameHash.Compute(name, hashIgnoreCase);
+            entries[i].Hash = TLHash.Compute(name, hashIgnoreCase);
             
             if (BitConverter.IsLittleEndian == bigEndian)
                 entries[i].ReverseEndianness();
@@ -166,7 +166,7 @@ public unsafe sealed class ScriptPackage
 
     private struct Entry
     {
-        /// <summary>The hash of the entry's name, computed by <see cref="NameHash"/>.</summary>
+        /// <summary>The hash of the entry's name, computed by <see cref="TLHash"/>.</summary>
         public uint Hash;
 
         /// <summary>The offset of the entry's data, relative to the <see cref="Entry"/>.</summary>

@@ -3,7 +3,7 @@
 namespace TLTool;
 
 /// <summary>Provides methods for computing hashes of names.</summary>
-public static class NameHash
+public static class TLHash
 {
     /// <summary>Computes the hash of the provided span of bytes.</summary>
     public static uint Compute(ReadOnlySpan<byte> name, bool ignoreCase)

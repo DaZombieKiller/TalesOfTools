@@ -20,7 +20,7 @@ public sealed partial class DataHeader
         /// <summary>The offset of the file within the TLFILE data.</summary>
         public ulong Offset;
 
-        /// <summary>The hash of the file's name (including extension), computed with <see cref="NameHash"/>.</summary>
+        /// <summary>The hash of the file's name (including extension), computed with <see cref="TLHash"/>.</summary>
         public uint Hash;
 
         /// <summary>The file's extension.</summary>

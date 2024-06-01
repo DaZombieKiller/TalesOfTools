@@ -36,7 +36,7 @@ public sealed class DecryptDlcHeaderCommand
         Decrypt(span, key: 0x7AB58E6F);
 
         // Expected hash value immediately precedes encrypted data.
-        if (NameHash.ComputeNoXor(span) != hash)
+        if (TLHash.ComputeNoXor(span) != hash)
         {
             Console.WriteLine("Failed to decrypt data.");
             return;

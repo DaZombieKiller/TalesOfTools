@@ -49,7 +49,7 @@ public sealed partial class DataHeader
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
     public void AddFile(string name, DataHeaderEntry entry)
     {
-        AddFile(NameHash.ComputeIgnoreCase(name), entry);
+        AddFile(TLHash.ComputeIgnoreCase(name), entry);
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
@@ -61,7 +61,7 @@ public sealed partial class DataHeader
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
     public void AddOrUpdateFile(string name, DataHeaderEntry entry)
     {
-        AddOrUpdateFile(NameHash.ComputeIgnoreCase(name), entry);
+        AddOrUpdateFile(TLHash.ComputeIgnoreCase(name), entry);
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>

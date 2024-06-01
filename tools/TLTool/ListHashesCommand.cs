@@ -24,7 +24,7 @@ public sealed class ListHashesCommand
 
         foreach (string name in context.ParseResult.GetValueForArgument(Names))
         {
-            Console.WriteLine($"{NameHash.Compute(name, ignoreCase):X8}: {name}");
+            Console.WriteLine($"{TLHash.Compute(name, ignoreCase):X8}: {name}");
         }
     }
 }

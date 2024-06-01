@@ -20,7 +20,7 @@ public sealed class NameDictionary
         if (extension is not { Length: > 1 })
             return false;
 
-        var hash = NameHash.ComputeIgnoreCase(name);
+        var hash = TLHash.ComputeIgnoreCase(name);
         return _names.TryAdd((hash, extension[1..]), name);
     }
 
