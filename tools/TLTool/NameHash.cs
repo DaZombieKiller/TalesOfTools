@@ -29,6 +29,23 @@ public static class NameHash
         return Append(0, Encoding.ASCII.GetBytes(name), ignoreCase);
     }
 
+    // TODO: Better name.
+    /// <summary>Appends the provided span of bytes to the hash without XORing.</summary>
+    public static uint AppendNoXor(uint hash, ReadOnlySpan<byte> data)
+    {
+        foreach (byte b in data)
+            hash = AppendNoXor(hash, b);
+
+        return hash;
+    }
+
+    // TODO: Better name.
+    /// <summary>Computes the hash of the provided span of bytes without XORing.</summary>
+    public static uint ComputeNoXor(ReadOnlySpan<byte> data)
+    {
+        return AppendNoXor(0, data);
+    }
+
     /// <summary>Appends the provided span of bytes to the hash.</summary>
     public static uint Append(uint hash, ReadOnlySpan<byte> data)
     {
@@ -86,7 +103,13 @@ public static class NameHash
     /// <summary>Appends the provided byte to the hash.</summary>
     private static uint Append(uint hash, byte b)
     {
-        return hash ^ (b + (hash << 6) + (hash >> 2) - 0x61C88647);
+        return hash ^ AppendNoXor(hash, b);
+    }
+
+    /// <summary>Appends the provided byte to the hash, without XORing the previous hash value.</summary>
+    private static uint AppendNoXor(uint hash, byte b)
+    {
+        return b + (hash << 6) + (hash >> 2) - 0x61C88647;
     }
 
     /// <summary>Converts the provided ASCII value to uppercase.</summary>
