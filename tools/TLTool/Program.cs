@@ -13,4 +13,5 @@ root.AddCommand(new ListNamesCommand().Command);
 root.AddCommand(new ListHashesCommand().Command);
 root.AddCommand(new AnalyzeNamesCommand().Command);
 root.AddCommand(new DecryptDlcHeaderCommand().Command);
+root.AddCommand(new DecryptCommand().Command);
 await root.InvokeAsync(Environment.CommandLine);
