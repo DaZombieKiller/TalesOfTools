@@ -25,6 +25,12 @@ public sealed class DataHeaderEntry(IDataSource source, uint nameHash, string ex
     {
     }
 
+    /// <inheritdoc cref="IDataSource.OpenRead()" />
+    public Stream OpenRead()
+    {
+        return DataSource.OpenRead();
+    }
+
     /// <summary>Gets the file extension without a leading period.</summary>
     private static string GetExtension(FileInfo file)
     {

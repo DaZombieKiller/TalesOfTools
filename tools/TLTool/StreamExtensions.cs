@@ -1,4 +1,6 @@
-﻿using System.Buffers.Binary;
+﻿using System.Buffers;
+using System.Buffers.Binary;
+using System.Text;
 
 namespace TLTool;
 
@@ -40,5 +42,45 @@ public static class StreamExtensions
             value = BinaryPrimitives.ReverseEndianness(value);
 
         return value;
+    }
+
+    /// <summary>Reads a null-terminated string from the stream.</summary>
+    public static string ReadTerminatedString(this Stream stream, Encoding encoding)
+    {
+        if (stream is MemoryStream ms && ms.TryGetBuffer(out var segment))
+        {
+            var buffer = segment.AsSpan((int)stream.Position);
+            return GetTerminatedString(stream, encoding, buffer);
+        }
+
+        static string GetTerminatedString(Stream stream, Encoding encoding, ReadOnlySpan<byte> buffer)
+        {
+            var size = buffer.IndexOf((byte)0);
+
+            if (size == -1)
+                throw new EndOfStreamException();
+
+            stream.Position += size + 1;
+            return encoding.GetString(buffer[..size]);
+        }
+
+        var decoder = encoding.GetDecoder();
+        var builder = new StringBuilder();
+        
+        for (int v = stream.ReadByte(); v != 0; v = stream.ReadByte())
+        {
+            if (v == -1)
+                throw new EndOfStreamException();
+
+            byte b = (byte)v;
+            char c = '\0';
+
+            if (decoder.GetChars(new ReadOnlySpan<byte>(ref b), new Span<char>(ref c), false) != 0)
+            {
+                builder.Append(c);
+            }
+        }
+
+        return builder.ToString();
     }
 }

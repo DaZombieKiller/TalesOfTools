@@ -88,6 +88,18 @@ public sealed partial class DataHeader
         return false;
     }
 
+    /// <summary>Gets the file with the specified name.</summary>
+    public bool TryGetEntry(string name, [NotNullWhen(true)] out DataHeaderEntry? entry)
+    {
+        return TryGetEntry(TLHash.ComputeIgnoreCase(name), out entry);
+    }
+
+    /// <summary>Gets the file with the specified name.</summary>
+    public bool TryGetEntry(ReadOnlySpan<byte> name, [NotNullWhen(true)] out DataHeaderEntry? entry)
+    {
+        return TryGetEntry(TLHash.ComputeIgnoreCase(name), out entry);
+    }
+
     /// <summary>Sorts all entries by name hash.</summary>
     public void SortEntriesByNameHash()
     {

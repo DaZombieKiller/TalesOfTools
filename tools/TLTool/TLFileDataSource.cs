@@ -39,14 +39,25 @@ public sealed class TLFileDataSource : IDataSource
     /// <inheritdoc/>
     public Stream OpenRead()
     {
-        if (File is null)
-            throw new InvalidOperationException();
+        var stream = OpenReadRaw();
 
-        return OpenRead(File);
+        if (IsCompressed)
+            stream = GetDecompressionStream(stream, leaveOpen: false);
+
+        return stream;
     }
 
     /// <inheritdoc cref="OpenRead()"/>
-    public Stream OpenRead(FileInfo file)
+    public Stream OpenReadRaw()
+    {
+        if (File is null)
+            throw new InvalidOperationException();
+
+        return OpenReadRaw(File);
+    }
+
+    /// <inheritdoc cref="OpenReadRaw()"/>
+    public Stream OpenReadRaw(FileInfo file)
     {
         return new SubReadStream(file.OpenRead(), Offset, CompressedLength);
     }

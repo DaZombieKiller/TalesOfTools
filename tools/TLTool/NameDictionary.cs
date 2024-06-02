@@ -55,4 +55,12 @@ public sealed class NameDictionary
         using var reader = new StreamReader(path);
         AddNames(reader);
     }
+
+    public void Write(TextWriter writer)
+    {
+        foreach (string name in _names.Values.Order())
+        {
+            writer.WriteLine(name);
+        }
+    }
 }
