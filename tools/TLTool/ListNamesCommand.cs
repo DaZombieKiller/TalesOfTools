@@ -9,7 +9,7 @@ public sealed class ListNamesCommand
 
     public Argument<string> HeaderPath { get; } = new("header-path", "Path to FILEHEADER.TOFHDB");
 
-    public Argument<string> FileDictionaryPath { get; } = new("--dictionary", "Path to name dictionary file");
+    public Argument<string> FileDictionaryPath { get; } = new("dictionary", "Path to name dictionary file");
 
     public Option<bool> Is32Bit { get; } = new("--bit32", "File is 32-bit (Xillia, Zestiria)");
 
