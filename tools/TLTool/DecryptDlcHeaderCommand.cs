@@ -53,7 +53,7 @@ public sealed class DecryptDlcHeaderCommand
         int i;
         int n = data.Length - (data.Length % sizeof(uint));
         
-        for (i = 0; i < n; i += sizeof(uint))
+        for (i = 0; i + sizeof(uint) <= n; i += sizeof(uint))
         {
             var span = data.Slice(i, sizeof(uint));
             int temp = BinaryPrimitives.ReadInt32LittleEndian(span);

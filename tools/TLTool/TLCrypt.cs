@@ -44,9 +44,9 @@ public static class TLCrypt
     private static unsafe void Process(Span<byte> data, ulong key, bool encrypt)
     {
         int i;
-        int n = data.Length - (data.Length % sizeof(ulong));
+        int n = data.Length - (data.Length % 16);
 
-        for (i = 0; i < n; i += sizeof(ulong))
+        for (i = 0; i + sizeof(ulong) <= n; i += sizeof(ulong))
         {
             ulong temp = BinaryPrimitives.ReadUInt64LittleEndian(data[i..]);
             BinaryPrimitives.WriteUInt64LittleEndian(data[i..], temp ^ key);
