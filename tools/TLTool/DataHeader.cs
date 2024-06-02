@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 namespace TLTool;
 
@@ -9,7 +11,19 @@ public sealed partial class DataHeader
     public DateTime CreationTime { get; set; } = DateTime.UtcNow;
 
     /// <summary>The entries contained in the <see cref="DataHeader"/>.</summary>
-    public Dictionary<uint, DataHeaderEntry> Entries { get; } = [];
+    public ReadOnlyCollection<DataHeaderEntry> Entries { get; }
+
+    /// <summary>The entries contained in the <see cref="DataHeader"/>.</summary>
+    private readonly List<DataHeaderEntry> _entries = [];
+
+    /// <summary>Maps a file hash to a file index.</summary>
+    private readonly Dictionary<uint, int> _hashToIndex = [];
+
+    /// <summary>Initializes a new <see cref="DataHeader"/> instance.</summary>
+    public DataHeader()
+    {
+        Entries = _entries.AsReadOnly();
+    }
 
     /// <summary>Reads the entries from the specified stream into the <see cref="DataHeader"/>.</summary>
     public void ReadFrom(BinaryReader reader, bool is32Bit)
@@ -24,50 +38,73 @@ public sealed partial class DataHeader
         var header = new RawHeader(reader, is32Bit);
         CreationTime = DateTime.FromFileTimeUtc((long)header.CreationTime);
 
-        // We could read the entries array here, but it's merely a sorted lookup table
-        // into the files array, so assuming we have a well-formed file, we don't really
-        // need to bother reading it and can just read the files array directly.
         reader.BaseStream.Position = RawHeader.GetBaseFileOffset(is32Bit) + (long)header.FileArrayOffset;
         var files = new RawFile[header.FileArrayLength];
 
         for (var i = 0ul; i < header.FileArrayLength; i++)
-        {
             files[i] = new RawFile(reader);
-        }
 
         reader.BaseStream.Position = RawHeader.GetBaseEntryOffset(is32Bit) + (long)header.FileHashArrayOffset;
         for (var i = 0ul; i < header.FileHashArrayLength; i++)
         {
-            reader.ReadUInt32();
-            var file = files[reader.ReadUInt32()];
-            var source = new TLFileDataSource(data, (long)file.Offset, (long)file.Length, (long)file.CompressedLength);
-            var entry = new DataHeaderEntry(source, Encoding.ASCII.GetString(file.Extension));
-            Entries.Add(file.Hash, entry);
+            var hash = reader.ReadUInt32();
+            var index = reader.ReadUInt32();
+            var file = files[index];
+            var source = new TLFileDataSource(data, index, (long)file.Offset, (long)file.Length, (long)file.CompressedLength);
+            var entry = new DataHeaderEntry(source, hash, Encoding.ASCII.GetString(file.Extension));
+            AddEntry(entry);
         }
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
-    public void AddFile(string name, DataHeaderEntry entry)
+    public void AddEntry(DataHeaderEntry entry)
     {
-        AddFile(TLHash.ComputeIgnoreCase(name), entry);
+        if (_hashToIndex.ContainsKey(entry.NameHash))
+            throw new ArgumentException("A file with the same hash already exists.");
+
+        _hashToIndex.Add(entry.NameHash, _entries.Count);
+        _entries.Add(entry);
     }
 
     /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
-    public void AddFile(uint hash, DataHeaderEntry entry)
+    public void AddOrUpdateEntry(DataHeaderEntry entry)
     {
-        Entries.Add(hash, entry);
+        if (_hashToIndex.TryGetValue(entry.NameHash, out int index))
+            _entries[index] = entry;
+        else
+            AddEntry(entry);
     }
 
-    /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
-    public void AddOrUpdateFile(string name, DataHeaderEntry entry)
+    /// <summary>Gets the file with the specified name hash.</summary>
+    public bool TryGetEntry(uint hash, [NotNullWhen(true)] out DataHeaderEntry? entry)
     {
-        AddOrUpdateFile(TLHash.ComputeIgnoreCase(name), entry);
+        if (_hashToIndex.TryGetValue(hash, out int index))
+        {
+            entry = _entries[index];
+            return true;
+        }
+
+        entry = null;
+        return false;
     }
 
-    /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
-    public void AddOrUpdateFile(uint hash, DataHeaderEntry entry)
+    /// <summary>Sorts all entries by name hash.</summary>
+    public void SortEntriesByNameHash()
     {
-        Entries[hash] = entry;
+        _hashToIndex.Clear();
+        _entries.Sort((a, b) => a.NameHash.CompareTo(b.NameHash));
+
+        for (int i = 0; i < _entries.Count; i++)
+        {
+            _hashToIndex.Add(_entries[i].NameHash, i);
+        }
+    }
+
+    /// <summary>Removes all entries from the <see cref="DataHeader"/>.</summary>
+    public void Clear()
+    {
+        _hashToIndex.Clear();
+        _entries.Clear();
     }
 
     /// <summary>Writes the header and all of its entries to the specified header and data streams.</summary>
@@ -81,25 +118,25 @@ public sealed partial class DataHeader
 
         // The entries array is sorted by hash so that the engine can perform a binary search on it.
         var entries = Entries.ToArray();
-        Array.Sort(entries, new KeyComparer<uint, DataHeaderEntry>());
+        Array.Sort(entries, (a, b) => a.NameHash.CompareTo(b.NameHash));
 
         header.FileHashArrayOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseEntryOffset(is32Bit);
-        header.FileHashArrayLength  = (uint)entries.Length;
+        header.FileHashArrayLength = (uint)entries.Length;
 
         for (int i = 0; i < entries.Length; i++)
         {
-            writer.Write(entries[i].Key);
+            writer.Write(entries[i].NameHash);
             writer.Write(i);
         }
 
         header.FileArrayOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseFileOffset(is32Bit);
-        header.FileArrayLength  = (uint)entries.Length;
+        header.FileArrayLength = (uint)entries.Length;
 
-        foreach (var (hash, entry) in entries)
+        foreach (var entry in entries)
         {
             var file = new RawFile
             {
-                Hash = hash,
+                Hash = entry.NameHash,
                 Offset = (ulong)data.Length,
                 Length = (ulong)entry.DataSource.Length,
                 CompressedLength = (ulong)entry.DataSource.Length,

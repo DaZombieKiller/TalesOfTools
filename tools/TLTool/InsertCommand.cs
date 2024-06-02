@@ -50,7 +50,7 @@ public sealed class InsertCommand
                 continue;
             }
 
-            header.AddOrUpdateFile(hash, new DataHeaderEntry(new FileInfo(file)));
+            header.AddOrUpdateEntry(new DataHeaderEntry(new FileInfo(file), hash));
         }
 
         using (var data = File.Open(context.ParseResult.GetValueForArgument(TLFilePath), FileMode.Append))

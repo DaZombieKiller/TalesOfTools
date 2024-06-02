@@ -42,12 +42,12 @@ public sealed class AnalyzeNamesCommand
         var filesByExtension = new Dictionary<string, int>();
         var namedByExtension = new Dictionary<string, int>();
 
-        foreach (var (hash, entry) in data.Entries)
+        foreach (var entry in data.Entries)
         {
             longestExtension = int.Max(longestExtension, entry.Extension.Length);
             filesByExtension[entry.Extension] = filesByExtension.GetValueOrDefault(entry.Extension) + 1;
 
-            if (mapper.TryGetValue(hash, entry.Extension, out _))
+            if (mapper.TryGetValue(entry.NameHash, entry.Extension, out _))
             {
                 entriesNamed++;
                 namedByExtension[entry.Extension] = namedByExtension.GetValueOrDefault(entry.Extension) + 1;

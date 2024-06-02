@@ -16,15 +16,18 @@ public static class TLCrypt
     ];
 
     /// <summary>Gets a decryption key from two 4-bit key indices.</summary>
-    public static ulong GetKey(byte key1, byte key2)
+    public static ulong GetKey(byte index1, byte index2)
     {
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(key1, DummyHash.Length);
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(key2, DummyHash.Length);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index1, DummyHash.Length);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index2, DummyHash.Length);
 
-        // If key1 and key2 are equal, the game will increment key2 and use the next
-        // key in the sequence for it, wrapping the value if necessary. Should that
-        // be replicated here? Or should it be up to the discretion of the call site?
-        return DummyHash[key1] ^ DummyHash[key2];
+        if (index1 == index2)
+        {
+            index2++;
+            index2 &= 0xF;
+        }
+
+        return DummyHash[index1] ^ DummyHash[index2];
     }
 
     /// <summary>Decrypts the provided buffer with the provided key.</summary>

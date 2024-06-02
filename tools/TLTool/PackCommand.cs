@@ -44,13 +44,13 @@ public sealed class PackCommand
                 continue;
             }
 
-            if (header.Entries.TryGetValue(hash, out var entry))
+            if (header.TryGetEntry(hash, out var entry))
             {
                 Console.WriteLine($"Error: cannot import '{file}' because it conflicts with '{((FileDataSource)entry.DataSource).File.FullName}'.");
                 continue;
             }
 
-            header.AddFile(hash, new DataHeaderEntry(new FileInfo(file)));
+            header.AddEntry(new DataHeaderEntry(new FileInfo(file), hash));
         }
 
         using var stream = File.Create(Path.Combine(output, "FILEHEADER.TOFHDB"));

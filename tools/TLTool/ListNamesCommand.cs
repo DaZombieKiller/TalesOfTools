@@ -37,19 +37,19 @@ public sealed class ListNamesCommand
             header.ReadFrom(reader, is32Bit);
 
         // Sort the entries by data offset, which can reveal the original filesystem folder groupings.
-        var entries = header.Entries.Where(pair => pair.Value.DataSource is TLFileDataSource).ToArray();
+        var entries = header.Entries.Where(entry => entry.DataSource is TLFileDataSource).ToArray();
         Array.Sort(entries, CompareDataSourceOffsets);
 
-        foreach (var (hash, entry) in entries)
+        foreach (var entry in entries)
         {
-            Console.WriteLine(mapper.GetNameOrFallback(hash, entry.Extension));
+            Console.WriteLine(mapper.GetNameOrFallback(entry.NameHash, entry.Extension));
         }
     }
 
-    private static int CompareDataSourceOffsets(KeyValuePair<uint, DataHeaderEntry> a, KeyValuePair<uint, DataHeaderEntry> b)
+    private static int CompareDataSourceOffsets(DataHeaderEntry a, DataHeaderEntry b)
     {
-        var offset1 = ((TLFileDataSource)a.Value.DataSource).Offset;
-        var offset2 = ((TLFileDataSource)b.Value.DataSource).Offset;
+        var offset1 = ((TLFileDataSource)a.DataSource).Offset;
+        var offset2 = ((TLFileDataSource)b.DataSource).Offset;
         return offset1.CompareTo(offset2);
     }
 }
