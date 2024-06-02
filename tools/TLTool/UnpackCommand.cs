@@ -70,7 +70,14 @@ public sealed class UnpackCommand
     private static Stream GetStream(TLFileDataSource source, DataEncryptHeader? encrypt)
     {
         if (encrypt == null || !encrypt.GetFileKey(source.Index, out var key))
-            return source.OpenRead();
+        {
+            var stream = source.OpenRead();
+
+            if (source.IsCompressed)
+                stream = TLFileDataSource.GetDecompressionStream(stream, leaveOpen: false);
+
+            return stream;
+        }
 
         var ms = new MemoryStream((int)source.Length);
 
