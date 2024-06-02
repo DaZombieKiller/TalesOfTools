@@ -88,16 +88,33 @@ public sealed partial class DataHeader
         return false;
     }
 
+    /// <summary>Gets the file with the specified name hash and extension.</summary>
+    public bool TryGetEntry(uint hash, string extension, [NotNullWhen(true)] out DataHeaderEntry? entry)
+    {
+        if (_hashToIndex.TryGetValue(hash, out int index))
+        {
+            entry = _entries[index];
+
+            if (entry.Extension.Equals(extension, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        entry = null;
+        return false;
+    }
+
     /// <summary>Gets the file with the specified name.</summary>
     public bool TryGetEntry(string name, [NotNullWhen(true)] out DataHeaderEntry? entry)
     {
-        return TryGetEntry(TLHash.ComputeIgnoreCase(name), out entry);
+        return TryGetEntry(TLHash.ComputeIgnoreCase(name), GetExtension(name), out entry);
     }
 
     /// <summary>Gets the file with the specified name.</summary>
     public bool TryGetEntry(ReadOnlySpan<byte> name, [NotNullWhen(true)] out DataHeaderEntry? entry)
     {
-        return TryGetEntry(TLHash.ComputeIgnoreCase(name), out entry);
+        return TryGetEntry(TLHash.ComputeIgnoreCase(name), GetExtension(Encoding.ASCII.GetString(name)), out entry);
     }
 
     /// <summary>Sorts all entries by name hash.</summary>
@@ -184,5 +201,16 @@ public sealed partial class DataHeader
 
         writer.BaseStream.Position = 0;
         header.Write(writer, is32Bit);
+    }
+
+    /// <summary>Gets the file extension without a leading period.</summary>
+    private static string GetExtension(string name)
+    {
+        string extension = Path.GetExtension(name);
+
+        if (string.IsNullOrEmpty(extension))
+            return extension;
+
+        return extension[1..];
     }
 }
