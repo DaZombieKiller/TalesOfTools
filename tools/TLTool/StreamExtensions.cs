@@ -48,10 +48,7 @@ public static class StreamExtensions
     public static string ReadTerminatedString(this Stream stream, Encoding encoding)
     {
         if (stream is MemoryStream ms && ms.TryGetBuffer(out var segment))
-        {
-            var buffer = segment.AsSpan((int)stream.Position);
-            return GetTerminatedString(stream, encoding, buffer);
-        }
+            return GetTerminatedString(stream, encoding, segment.AsSpan((int)stream.Position));
 
         static string GetTerminatedString(Stream stream, Encoding encoding, ReadOnlySpan<byte> buffer)
         {
@@ -64,23 +61,26 @@ public static class StreamExtensions
             return encoding.GetString(buffer[..size]);
         }
 
-        var decoder = encoding.GetDecoder();
-        var builder = new StringBuilder();
-        
+        var writer = new ArrayBufferWriter<byte>();
+        var buffer = writer.GetSpan();
+        var offset = 0;
+
         for (int v = stream.ReadByte(); v != 0; v = stream.ReadByte())
         {
             if (v == -1)
                 throw new EndOfStreamException();
 
-            byte b = (byte)v;
-            char c = '\0';
+            buffer[offset++] = (byte)v;
 
-            if (decoder.GetChars(new ReadOnlySpan<byte>(ref b), new Span<char>(ref c), false) != 0)
+            if (offset == buffer.Length)
             {
-                builder.Append(c);
+                writer.Advance(offset);
+                buffer = writer.GetSpan();
+                offset = 0;
             }
         }
 
-        return builder.ToString();
+        writer.Advance(offset);
+        return encoding.GetString(writer.WrittenSpan);
     }
 }
