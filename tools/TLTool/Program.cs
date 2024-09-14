@@ -17,4 +17,4 @@ root.AddCommand(new DecryptCommand().Command);
 root.AddCommand(new QueryNamesCommand().Command);
 root.AddCommand(new DumpNamesCommand().Command);
 root.AddCommand(new QueryFileCommand().Command);
-await root.InvokeAsync(Environment.CommandLine);
+await root.InvokeAsync(args);
