@@ -179,7 +179,7 @@ public sealed partial class DataHeader
                 if (bytes.Length > RawFile.MaxExtensionLength)
                     Console.WriteLine($"Warning: '{entry.Extension}' extension is too long and will be truncated.");
 
-                bytes[..length].CopyTo(new Span<byte>(file.ExtensionBuffer, RawFile.MaxExtensionLength));
+                bytes[..length].CopyTo(file.ExtensionBuffer);
                 file.ExtensionLength = (byte)length;
             }
 

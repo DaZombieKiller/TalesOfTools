@@ -1,5 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 namespace TLTool;
 
@@ -24,7 +24,7 @@ public sealed partial class DataHeader
         public uint Hash;
 
         /// <summary>The file's extension.</summary>
-        public unsafe fixed byte ExtensionBuffer[MaxExtensionLength + 1];
+        public FileExtensionBuffer ExtensionBuffer;
 
         /// <summary>The length of the file's extension in <see cref="ExtensionBuffer"/>.</summary>
         public byte ExtensionLength;
@@ -33,13 +33,14 @@ public sealed partial class DataHeader
         public byte Unknown;
 
         /// <summary>Gets the file's extension as a read-only span of bytes.</summary>
-        public unsafe readonly ReadOnlySpan<byte> Extension
+        [UnscopedRef]
+        public readonly ReadOnlySpan<byte> Extension
         {
             get
             {
-                ref var r0 = ref Unsafe.AsRef(in ExtensionBuffer[0]);
                 var length = int.Min(ExtensionLength, MaxExtensionLength);
-                return MemoryMarshal.CreateReadOnlySpan(ref r0, length);
+                var buffer = ((ReadOnlySpan<byte>)ExtensionBuffer)[..length];
+                return (length = buffer.IndexOf((byte)0)) >= 0 ? buffer[..length] : buffer;
             }
         }
 
@@ -50,10 +51,7 @@ public sealed partial class DataHeader
             CompressedLength = reader.ReadUInt64();
             Offset = reader.ReadUInt64();
             Hash = reader.ReadUInt32();
-
-            fixed (byte* pExtension = ExtensionBuffer)
-                reader.BaseStream.ReadExactly(new Span<byte>(pExtension, MaxExtensionLength + 1));
-
+            reader.BaseStream.ReadExactly(ExtensionBuffer);
             ExtensionLength = reader.ReadByte();
             Unknown = reader.ReadByte();
         }
@@ -65,12 +63,16 @@ public sealed partial class DataHeader
             writer.Write(CompressedLength);
             writer.Write(Offset);
             writer.Write(Hash);
-
-            fixed (byte* pExtension = ExtensionBuffer)
-                writer.Write(new ReadOnlySpan<byte>(pExtension, MaxExtensionLength + 1));
-
+            writer.Write(ExtensionBuffer);
             writer.Write(ExtensionLength);
             writer.Write(Unknown);
+        }
+
+        /// <summary>Buffer structure for <see cref="ExtensionBuffer"/>.</summary>
+        [InlineArray(MaxExtensionLength + 1)]
+        public struct FileExtensionBuffer
+        {
+            private byte _e0;
         }
     }
 }
