@@ -21,6 +21,7 @@ decltype(&CreateMutexA) PEarlyFunction;
 static void(__fastcall *Load)(const char*, const char*, void*);
 #else
 static void(*Load)(void*, const char*, const char*);
+static void(*Printf)(const char*, ...);
 #endif
 
 static CRITICAL_SECTION LoadSection;
@@ -112,6 +113,9 @@ static void Initialize()
 {
     DetourTransactionBegin();
     DetourAttach((void**)&Load, &LoadDetour);
+#ifdef BERSERIA
+    DetourAttach((void**)&Printf, std::printf);
+#endif
     DetourTransactionCommit();
     LoadNames("name_db.txt");
     NameDB = std::ofstream("name_db.txt", std::ios_base::app);
@@ -153,6 +157,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
     // 0336651617463615849: 0x16F3DF0 (latest)
     // 7835388559349787992: 0x16D8560
     *(void**)&Load = (char*)GetModuleHandle(nullptr) + 0x16F3DF0;
+
+    // TL::Printf
+    // 0336651617463615849: 0x1392C10 (latest)
+    // 7835388559349787992: 0x12FE960
+    *(void**)&Printf = (char*)GetModuleHandle(nullptr) + 0x1392C10;
 #else // ZESTIRIA
     // RVAs based on Steam manifest
     // 3141087997518986971: 0x551130 (latest)
