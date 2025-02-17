@@ -19,7 +19,7 @@ public partial class ZArcFile
     /// <summary>Maps a file hash to a file index.</summary>
     private readonly Dictionary<ulong, int> _hashToIndex = [];
 
-    /// <summary>The stride of the block size table (0, 1, 2 or 4).</summary>
+    /// <summary>The byte size of each LZMA block.</summary>
     private uint[] _blockSizes = [];
 
     /// <summary>The compression block alignment for the archive.</summary>
