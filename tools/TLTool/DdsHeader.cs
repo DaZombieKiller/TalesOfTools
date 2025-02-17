@@ -1,4 +1,7 @@
-﻿namespace TLTool;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace TLTool;
 
 public unsafe struct DdsHeader
 {
@@ -8,7 +11,7 @@ public unsafe struct DdsHeader
     public uint PitchOrLinearSize;
     public uint Depth;
     public uint MipMapCount;
-    public fixed uint Reserved1[11];
+    public Reserved1Buffer Reserved1;
     public DdsPixelFormat PixelFormat;
     public uint Caps;
     public uint Caps2;
@@ -16,25 +19,28 @@ public unsafe struct DdsHeader
     public uint Caps4;
     public uint Reserved2;
 
-    public readonly void Write(BinaryWriter writer)
+    public readonly void Write(BinaryStream writer)
     {
         writer.Write("DDS "u8);
-        writer.Write(0x7C);
-        writer.Write(Flags);
-        writer.Write(Height);
-        writer.Write(Width);
-        writer.Write(PitchOrLinearSize);
-        writer.Write(Depth);
-        writer.Write(MipMapCount);
-
-        fixed (uint* pReserved = Reserved1)
-            writer.Write(new ReadOnlySpan<byte>(pReserved, sizeof(uint) * 11));
-
+        writer.WriteUInt32(0x7C);
+        writer.WriteUInt32(Flags);
+        writer.WriteUInt32(Height);
+        writer.WriteUInt32(Width);
+        writer.WriteUInt32(PitchOrLinearSize);
+        writer.WriteUInt32(Depth);
+        writer.WriteUInt32(MipMapCount);
+        writer.Write(MemoryMarshal.AsBytes((ReadOnlySpan<uint>)Reserved1));
         PixelFormat.Write(writer);
-        writer.Write(Caps);
-        writer.Write(Caps2);
-        writer.Write(Caps3);
-        writer.Write(Caps4);
-        writer.Write(Reserved2);
+        writer.WriteUInt32(Caps);
+        writer.WriteUInt32(Caps2);
+        writer.WriteUInt32(Caps3);
+        writer.WriteUInt32(Caps4);
+        writer.WriteUInt32(Reserved2);
+    }
+
+    [InlineArray(11)]
+    public struct Reserved1Buffer
+    {
+        private uint _e0;
     }
 }

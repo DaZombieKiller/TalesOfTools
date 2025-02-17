@@ -24,8 +24,8 @@ public sealed class DecryptCommand
 
     public void Execute(InvocationContext context)
     {
-        var header = new DataHeader();
-        var crypto = new DataEncryptHeader(File.ReadAllBytes(context.ParseResult.GetValueForArgument(EncryptPath)));
+        var header = new TLDataHeader();
+        var crypto = new TLDataEncryptHeader(File.ReadAllBytes(context.ParseResult.GetValueForArgument(EncryptPath)));
         var buffer = File.ReadAllBytes(context.ParseResult.GetValueForArgument(HeaderPath));
 
         // Decrypt the FILEHEADER
@@ -37,8 +37,7 @@ public sealed class DecryptCommand
         using var mma = mmf.CreateViewAccessor();
 
         using (var stream = new MemoryStream(buffer))
-        using (var reader = new BinaryReader(stream))
-            header.ReadFrom(reader, data: null, is32Bit: false);
+            header.ReadFrom(new BinaryStream(stream, bigEndian: false), data: null, is32Bit: false);
 
         Parallel.ForEach(header.Entries, entry =>
         {

@@ -26,15 +26,14 @@ public sealed class ListNamesCommand
 
     public void Execute(InvocationContext context)
     {
-        var header = new DataHeader();
-        var mapper = new NameDictionary();
+        var header = new TLDataHeader();
+        var mapper = new TLDataNameDictionary();
         var is32Bit = context.ParseResult.GetValueForOption(Is32Bit);
         var bigEndian = context.ParseResult.GetValueForOption(IsBigEndian);
         mapper.AddNamesFromFile(context.ParseResult.GetValueForArgument(FileDictionaryPath)!);
 
         using (var stream = File.OpenRead(context.ParseResult.GetValueForArgument(HeaderPath)))
-        using (var reader = bigEndian ? new BigEndianBinaryReader(stream) : new BinaryReader(stream))
-            header.ReadFrom(reader, is32Bit);
+            header.ReadFrom(new BinaryStream(stream, bigEndian), is32Bit);
 
         // Sort the entries by data offset, which can reveal the original filesystem folder groupings.
         var entries = header.Entries.Where(entry => entry.DataSource is TLFileDataSource).ToArray();
@@ -46,7 +45,7 @@ public sealed class ListNamesCommand
         }
     }
 
-    private static int CompareDataSourceOffsets(DataHeaderEntry a, DataHeaderEntry b)
+    private static int CompareDataSourceOffsets(TLDataHeaderEntry a, TLDataHeaderEntry b)
     {
         var offset1 = ((TLFileDataSource)a.DataSource).Offset;
         var offset2 = ((TLFileDataSource)b.DataSource).Offset;

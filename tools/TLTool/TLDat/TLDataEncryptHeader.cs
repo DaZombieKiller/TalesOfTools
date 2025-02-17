@@ -3,7 +3,7 @@
 namespace TLTool;
 
 /// <summary>A data file's encryption header.</summary>
-public sealed class DataEncryptHeader(byte[] data)
+public sealed class TLDataEncryptHeader(byte[] data)
 {
     /// <summary>Gets the encryption key for the file with the provided index.</summary>
     public bool GetFileKey(uint index, out ulong key)

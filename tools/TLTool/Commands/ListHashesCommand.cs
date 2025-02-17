@@ -21,10 +21,11 @@ public sealed class ListHashesCommand
     public void Execute(InvocationContext context)
     {
         bool ignoreCase = !context.ParseResult.GetValueForOption(CaseSensitive);
+        var flags = ignoreCase ? TLHashOptions.IgnoreCase : TLHashOptions.None;
 
         foreach (string name in context.ParseResult.GetValueForArgument(Names))
         {
-            Console.WriteLine($"{TLHash.Compute(name, ignoreCase):X8}: {name}");
+            Console.WriteLine($"{TLHash.HashToUInt32(name, flags):X8}: {name}");
         }
     }
 }

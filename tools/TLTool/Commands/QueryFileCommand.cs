@@ -31,15 +31,14 @@ public sealed class QueryFileCommand
 
     public void Execute(InvocationContext context)
     {
-        var data = new DataHeader();
-        var mapper = new NameDictionary();
+        var data = new TLDataHeader();
+        var mapper = new TLDataNameDictionary();
         var is32Bit = context.ParseResult.GetValueForOption(Is32Bit);
         var bigEndian = context.ParseResult.GetValueForOption(IsBigEndian);
         var offset = ulong.Parse(context.ParseResult.GetValueForArgument(DataOffset), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 
         using (var stream = File.OpenRead(context.ParseResult.GetValueForArgument(HeaderPath)))
-        using (var reader = bigEndian ? new BigEndianBinaryReader(stream) : new BinaryReader(stream))
-            data.ReadFrom(reader, is32Bit);
+            data.ReadFrom(new BinaryStream(stream, bigEndian), is32Bit);
 
         if (context.ParseResult.HasOption(Dictionary))
             mapper.AddNamesFromFile(context.ParseResult.GetValueForOption(Dictionary)!);

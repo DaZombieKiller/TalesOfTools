@@ -1,8 +1,8 @@
 ﻿namespace TLTool;
 
 /// <summary>An entry in a data file header.</summary>
-/// <remarks>Initializes a new <see cref="DataHeaderEntry"/> instance.</remarks>
-public sealed class DataHeaderEntry(IDataSource source, uint nameHash, string extension)
+/// <remarks>Initializes a new <see cref="TLDataHeaderEntry"/> instance.</remarks>
+public sealed class TLDataHeaderEntry(IDataSource source, uint nameHash, string extension)
 {
     /// <summary>The hash of the entry's file name, including the extension.</summary>
     public uint NameHash { get; } = nameHash;
@@ -13,15 +13,15 @@ public sealed class DataHeaderEntry(IDataSource source, uint nameHash, string ex
     /// <summary>The source for the entry's data.</summary>
     public IDataSource DataSource { get; } = source;
 
-    /// <summary>Initializes a new <see cref="DataHeaderEntry"/> instance.</summary>
-    public DataHeaderEntry(FileInfo file, uint hash)
+    /// <summary>Initializes a new <see cref="TLDataHeaderEntry"/> instance.</summary>
+    public TLDataHeaderEntry(FileInfo file, uint hash)
         : this(new FileDataSource(file), hash, GetExtension(file))
     {
     }
 
-    /// <summary>Initializes a new <see cref="DataHeaderEntry"/> instance.</summary>
-    public DataHeaderEntry(FileInfo file)
-        : this(file, TLHash.ComputeIgnoreCase(file.Name))
+    /// <summary>Initializes a new <see cref="TLDataHeaderEntry"/> instance.</summary>
+    public TLDataHeaderEntry(FileInfo file)
+        : this(file, TLHash.HashToUInt32(file.Name, TLHashOptions.IgnoreCase))
     {
     }
 

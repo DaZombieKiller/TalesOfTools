@@ -5,59 +5,59 @@ using System.Text;
 namespace TLTool;
 
 /// <summary>A data file's header.</summary>
-public sealed partial class DataHeader
+public sealed partial class TLDataHeader
 {
     /// <summary>The creation time of the header file.</summary>
     public DateTime CreationTime { get; set; } = DateTime.UtcNow;
 
-    /// <summary>The entries contained in the <see cref="DataHeader"/>.</summary>
-    public ReadOnlyCollection<DataHeaderEntry> Entries { get; }
+    /// <summary>The entries contained in the <see cref="TLDataHeader"/>.</summary>
+    public ReadOnlyCollection<TLDataHeaderEntry> Entries { get; }
 
-    /// <summary>The entries contained in the <see cref="DataHeader"/>.</summary>
-    private readonly List<DataHeaderEntry> _entries = [];
+    /// <summary>The entries contained in the <see cref="TLDataHeader"/>.</summary>
+    private readonly List<TLDataHeaderEntry> _entries = [];
 
     /// <summary>Maps a file hash to a file index.</summary>
     private readonly Dictionary<uint, int> _hashToIndex = [];
 
-    /// <summary>Initializes a new <see cref="DataHeader"/> instance.</summary>
-    public DataHeader()
+    /// <summary>Initializes a new <see cref="TLDataHeader"/> instance.</summary>
+    public TLDataHeader()
     {
         Entries = _entries.AsReadOnly();
     }
 
-    /// <summary>Reads the entries from the specified stream into the <see cref="DataHeader"/>.</summary>
-    public void ReadFrom(BinaryReader reader, bool is32Bit)
+    /// <summary>Reads the entries from the specified stream into the <see cref="TLDataHeader"/>.</summary>
+    public void ReadFrom(BinaryStream stream, bool is32Bit)
     {
-        ReadFrom(reader, data: null, is32Bit);
+        ReadFrom(stream, data: null, is32Bit);
     }
 
-    /// <summary>Reads the entries from the specified stream into the <see cref="DataHeader"/>.</summary>
+    /// <summary>Reads the entries from the specified stream into the <see cref="TLDataHeader"/>.</summary>
     /// <param name="data">The data file containing the data for the entries described in the stream.</param>
-    public void ReadFrom(BinaryReader reader, FileInfo? data, bool is32Bit)
+    public void ReadFrom(BinaryStream stream, FileInfo? data, bool is32Bit)
     {
-        var header = new RawHeader(reader, is32Bit);
+        var header = new RawHeader(stream, is32Bit);
         CreationTime = DateTime.FromFileTimeUtc((long)header.CreationTime);
 
-        reader.BaseStream.Position = RawHeader.GetBaseFileOffset(is32Bit) + (long)header.FileArrayOffset;
+        stream.BaseStream.Position = RawHeader.GetBaseFileOffset(is32Bit) + (long)header.FileArrayOffset;
         var files = new RawFile[header.FileArrayLength];
 
         for (var i = 0ul; i < header.FileArrayLength; i++)
-            files[i] = new RawFile(reader);
+            files[i] = new RawFile(stream);
 
-        reader.BaseStream.Position = RawHeader.GetBaseEntryOffset(is32Bit) + (long)header.FileHashArrayOffset;
+        stream.BaseStream.Position = RawHeader.GetBaseEntryOffset(is32Bit) + (long)header.FileHashArrayOffset;
         for (var i = 0ul; i < header.FileHashArrayLength; i++)
         {
-            var hash = reader.ReadUInt32();
-            var index = reader.ReadUInt32();
+            var hash = stream.ReadUInt32();
+            var index = stream.ReadUInt32();
             var file = files[index];
             var source = new TLFileDataSource(data, index, (long)file.Offset, (long)file.Length, (long)file.CompressedLength);
-            var entry = new DataHeaderEntry(source, hash, Encoding.ASCII.GetString(file.Extension));
+            var entry = new TLDataHeaderEntry(source, hash, Encoding.ASCII.GetString(file.Extension));
             AddEntry(entry);
         }
     }
 
-    /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
-    public void AddEntry(DataHeaderEntry entry)
+    /// <summary>Adds the specified file to the <see cref="TLDataHeader"/>.</summary>
+    public void AddEntry(TLDataHeaderEntry entry)
     {
         if (_hashToIndex.ContainsKey(entry.NameHash))
             throw new ArgumentException("A file with the same hash already exists.");
@@ -66,8 +66,8 @@ public sealed partial class DataHeader
         _entries.Add(entry);
     }
 
-    /// <summary>Adds the specified file to the <see cref="DataHeader"/>.</summary>
-    public void AddOrUpdateEntry(DataHeaderEntry entry)
+    /// <summary>Adds the specified file to the <see cref="TLDataHeader"/>.</summary>
+    public void AddOrUpdateEntry(TLDataHeaderEntry entry)
     {
         if (_hashToIndex.TryGetValue(entry.NameHash, out int index))
             _entries[index] = entry;
@@ -76,7 +76,7 @@ public sealed partial class DataHeader
     }
 
     /// <summary>Gets the file with the specified name hash.</summary>
-    public bool TryGetEntry(uint hash, [NotNullWhen(true)] out DataHeaderEntry? entry)
+    public bool TryGetEntry(uint hash, [NotNullWhen(true)] out TLDataHeaderEntry? entry)
     {
         if (_hashToIndex.TryGetValue(hash, out int index))
         {
@@ -89,7 +89,7 @@ public sealed partial class DataHeader
     }
 
     /// <summary>Gets the file with the specified name hash and extension.</summary>
-    public bool TryGetEntry(uint hash, string extension, [NotNullWhen(true)] out DataHeaderEntry? entry)
+    public bool TryGetEntry(uint hash, string extension, [NotNullWhen(true)] out TLDataHeaderEntry? entry)
     {
         if (_hashToIndex.TryGetValue(hash, out int index))
         {
@@ -106,15 +106,15 @@ public sealed partial class DataHeader
     }
 
     /// <summary>Gets the file with the specified name.</summary>
-    public bool TryGetEntry(string name, [NotNullWhen(true)] out DataHeaderEntry? entry)
+    public bool TryGetEntry(string name, [NotNullWhen(true)] out TLDataHeaderEntry? entry)
     {
-        return TryGetEntry(TLHash.ComputeIgnoreCase(name), GetExtension(name), out entry);
+        return TryGetEntry(TLHash.HashToUInt32(name), GetExtension(name), out entry);
     }
 
     /// <summary>Gets the file with the specified name.</summary>
-    public bool TryGetEntry(ReadOnlySpan<byte> name, [NotNullWhen(true)] out DataHeaderEntry? entry)
+    public bool TryGetEntry(ReadOnlySpan<byte> name, [NotNullWhen(true)] out TLDataHeaderEntry? entry)
     {
-        return TryGetEntry(TLHash.ComputeIgnoreCase(name), GetExtension(Encoding.ASCII.GetString(name)), out entry);
+        return TryGetEntry(TLHash.HashToUInt32(name, TLHashOptions.IgnoreCase), GetExtension(Encoding.ASCII.GetString(name)), out entry);
     }
 
     /// <summary>Sorts all entries by name hash.</summary>
@@ -129,7 +129,7 @@ public sealed partial class DataHeader
         }
     }
 
-    /// <summary>Removes all entries from the <see cref="DataHeader"/>.</summary>
+    /// <summary>Removes all entries from the <see cref="TLDataHeader"/>.</summary>
     public void Clear()
     {
         _hashToIndex.Clear();
@@ -137,7 +137,7 @@ public sealed partial class DataHeader
     }
 
     /// <summary>Writes the header and all of its entries to the specified header and data streams.</summary>
-    public unsafe void Write(BinaryWriter writer, Stream data, bool is32Bit)
+    public unsafe void Write(BinaryStream writer, Stream data, bool is32Bit)
     {
         var header = new RawHeader();
         header.Write(writer, is32Bit);
@@ -154,8 +154,8 @@ public sealed partial class DataHeader
 
         for (int i = 0; i < entries.Length; i++)
         {
-            writer.Write(entries[i].NameHash);
-            writer.Write(i);
+            writer.WriteUInt32(entries[i].NameHash);
+            writer.WriteInt32(i);
         }
 
         header.FileArrayOffset = (ulong)writer.BaseStream.Position - (ulong)RawHeader.GetBaseFileOffset(is32Bit);

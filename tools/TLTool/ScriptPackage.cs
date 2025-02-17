@@ -91,8 +91,9 @@ public unsafe sealed class ScriptPackage
 
         int CompareNameHashes(KeyValuePair<string, byte[]> a, KeyValuePair<string, byte[]> b)
         {
-            var hash1 = TLHash.Compute(a.Key, hashIgnoreCase);
-            var hash2 = TLHash.Compute(b.Key, hashIgnoreCase);
+            var flags = hashIgnoreCase ? TLHashOptions.IgnoreCase : TLHashOptions.None;
+            var hash1 = TLHash.HashToUInt32(a.Key, flags);
+            var hash2 = TLHash.HashToUInt32(b.Key, flags);
             return hash1.CompareTo(hash2);
         }
 
@@ -109,7 +110,7 @@ public unsafe sealed class ScriptPackage
             // Update entry.
             stream.WriteAlign(Alignment);
             entries[i].Offset = (uint)(stream.Position - (sizeof(Header) + sizeof(Entry) * i));
-            entries[i].Hash = TLHash.Compute(name, hashIgnoreCase);
+            entries[i].Hash = TLHash.HashToUInt32(name, hashIgnoreCase ? TLHashOptions.IgnoreCase : TLHashOptions.None);
             
             if (BitConverter.IsLittleEndian == bigEndian)
                 entries[i].ReverseEndianness();

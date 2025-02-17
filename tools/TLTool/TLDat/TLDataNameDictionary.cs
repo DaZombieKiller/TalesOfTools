@@ -2,7 +2,7 @@
 
 namespace TLTool;
 
-public sealed class NameDictionary
+public sealed class TLDataNameDictionary
 {
     private readonly Dictionary<(uint Hash, string Extension), string> _names = [];
 
@@ -20,7 +20,7 @@ public sealed class NameDictionary
         if (extension is not { Length: > 1 })
             return false;
 
-        var hash = TLHash.ComputeIgnoreCase(name);
+        var hash = TLHash.HashToUInt32(name, TLHashOptions.IgnoreCase);
         return _names.TryAdd((hash, extension[1..]), name);
     }
 

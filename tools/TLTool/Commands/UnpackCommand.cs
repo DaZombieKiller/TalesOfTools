@@ -36,23 +36,22 @@ public sealed class UnpackCommand
 
     public void Execute(InvocationContext context)
     {
-        var header = new DataHeader();
-        var mapper = new NameDictionary();
+        var header = new TLDataHeader();
+        var mapper = new TLDataNameDictionary();
         var output = context.ParseResult.GetValueForArgument(OutputPath);
         var is32Bit = context.ParseResult.GetValueForOption(Is32Bit);
         var bigEndian = context.ParseResult.GetValueForOption(IsBigEndian);
         var buffer = File.ReadAllBytes(context.ParseResult.GetValueForArgument(HeaderPath));
-        DataEncryptHeader? encrypt = null;
+        TLDataEncryptHeader? encrypt = null;
 
         if (context.ParseResult.HasOption(Encrypted))
         {
-            encrypt = new DataEncryptHeader(File.ReadAllBytes(context.ParseResult.GetValueForOption(Encrypted)!));
+            encrypt = new TLDataEncryptHeader(File.ReadAllBytes(context.ParseResult.GetValueForOption(Encrypted)!));
             TLCrypt.Decrypt(buffer, encrypt.GetHeaderKey());
         }
 
         using (var stream = new MemoryStream(buffer))
-        using (var reader = bigEndian ? new BigEndianBinaryReader(stream) : new BinaryReader(stream))
-            header.ReadFrom(reader, new FileInfo(context.ParseResult.GetValueForArgument(TLFilePath)), is32Bit);
+            header.ReadFrom(new BinaryStream(stream, bigEndian), new FileInfo(context.ParseResult.GetValueForArgument(TLFilePath)), is32Bit);
 
         if (context.ParseResult.HasOption(FileDictionaryPath))
             mapper.AddNamesFromFile(context.ParseResult.GetValueForOption(FileDictionaryPath)!);
@@ -67,7 +66,7 @@ public sealed class UnpackCommand
         });
     }
 
-    private static Stream GetStream(TLFileDataSource source, DataEncryptHeader? encrypt)
+    private static Stream GetStream(TLFileDataSource source, TLDataEncryptHeader? encrypt)
     {
         if (encrypt == null || !encrypt.GetFileKey(source.Index, out var key))
             return source.OpenRead();
@@ -84,7 +83,7 @@ public sealed class UnpackCommand
         TLCrypt.Decrypt(buffer, key);
 
         if (source.IsCompressed)
-            return TLFileDataSource.GetDecompressionStream(ms, leaveOpen: false);
+            return CompressionUtility.GetTlzcDecompressionStream(ms, leaveOpen: false);
 
         return ms;
     }

@@ -10,15 +10,15 @@ public struct DdsPixelFormat
     public uint BBitMask;
     public uint ABitMask;
 
-    public readonly void Write(BinaryWriter writer)
+    public readonly void Write(BinaryStream writer)
     {
-        writer.Write(0x20);
-        writer.Write(Flags);
-        writer.Write(FourCC);
-        writer.Write(RGBBitCount);
-        writer.Write(RBitMask);
-        writer.Write(GBitMask);
-        writer.Write(BBitMask);
-        writer.Write(ABitMask);
+        writer.WriteUInt32(0x20);
+        writer.WriteUInt32(Flags);
+        writer.WriteUInt32(FourCC);
+        writer.WriteUInt32(RGBBitCount);
+        writer.WriteUInt32(RBitMask);
+        writer.WriteUInt32(GBitMask);
+        writer.WriteUInt32(BBitMask);
+        writer.WriteUInt32(ABitMask);
     }
 }

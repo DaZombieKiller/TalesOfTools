@@ -1,8 +1,8 @@
 ﻿namespace TLTool;
 
-public sealed partial class DataHeader
+public sealed partial class TLDataHeader
 {
-    /// <summary>Data structure describing the raw header of a <see cref="DataHeader"/>.</summary>
+    /// <summary>Data structure describing the raw header of a <see cref="TLDataHeader"/>.</summary>
     private struct RawHeader
     {
         /// <summary>The creation time of the file.</summary>
@@ -45,7 +45,7 @@ public sealed partial class DataHeader
         }
 
         /// <summary>Initializes a new <see cref="RawHeader"/> instance.</summary>
-        public RawHeader(BinaryReader reader, bool is32Bit)
+        public RawHeader(BinaryStream reader, bool is32Bit)
         {
             CreationTime = reader.ReadUInt64();
             FileHashArrayOffset = is32Bit ? reader.ReadUInt32() : reader.ReadUInt64();
@@ -58,32 +58,32 @@ public sealed partial class DataHeader
             VirtualPackArrayLength = is32Bit ? reader.ReadUInt32() : reader.ReadUInt64();
         }
 
-        /// <summary>Writes this <see cref="RawHeader"/> to the given <see cref="BinaryWriter"/>.</summary>
-        public readonly void Write(BinaryWriter writer, bool is32Bit)
+        /// <summary>Writes this <see cref="RawHeader"/> to the given <see cref="BinaryStream"/>.</summary>
+        public readonly void Write(BinaryStream writer, bool is32Bit)
         {
-            writer.Write(CreationTime);
+            writer.WriteUInt64(CreationTime);
 
             if (is32Bit)
             {
-                writer.Write((uint)FileHashArrayOffset);
-                writer.Write((uint)FileHashArrayLength);
-                writer.Write((uint)VirtualHashArrayOffset);
-                writer.Write((uint)VirtualHashArrayLength);
-                writer.Write((uint)FileArrayOffset);
-                writer.Write((uint)FileArrayLength);
-                writer.Write((uint)VirtualPackArrayOffset);
-                writer.Write((uint)VirtualPackArrayLength);
+                writer.WriteUInt32((uint)FileHashArrayOffset);
+                writer.WriteUInt32((uint)FileHashArrayLength);
+                writer.WriteUInt32((uint)VirtualHashArrayOffset);
+                writer.WriteUInt32((uint)VirtualHashArrayLength);
+                writer.WriteUInt32((uint)FileArrayOffset);
+                writer.WriteUInt32((uint)FileArrayLength);
+                writer.WriteUInt32((uint)VirtualPackArrayOffset);
+                writer.WriteUInt32((uint)VirtualPackArrayLength);
             }
             else
             {
-                writer.Write(FileHashArrayOffset);
-                writer.Write(FileHashArrayLength);
-                writer.Write(VirtualHashArrayOffset);
-                writer.Write(VirtualHashArrayLength);
-                writer.Write(FileArrayOffset);
-                writer.Write(FileArrayLength);
-                writer.Write(VirtualPackArrayOffset);
-                writer.Write(VirtualPackArrayLength);
+                writer.WriteUInt64(FileHashArrayOffset);
+                writer.WriteUInt64(FileHashArrayLength);
+                writer.WriteUInt64(VirtualHashArrayOffset);
+                writer.WriteUInt64(VirtualHashArrayLength);
+                writer.WriteUInt64(FileArrayOffset);
+                writer.WriteUInt64(FileArrayLength);
+                writer.WriteUInt64(VirtualPackArrayOffset);
+                writer.WriteUInt64(VirtualPackArrayLength);
             }
         }
     }

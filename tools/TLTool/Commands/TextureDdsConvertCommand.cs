@@ -63,7 +63,7 @@ public sealed class TextureDdsConvertCommand
         };
 
         using var stream = File.OpenRead(meta);
-        using var reader = platform == Platform.PS3 ? new BigEndianBinaryReader(stream) : new BinaryReader(stream);
+        var reader = new BinaryStream(stream, bigEndian: platform == Platform.PS3);
 
         // Determine file format
         var isMTex = stream.ReadUInt32LittleEndian() == MTEX;
@@ -174,7 +174,8 @@ public sealed class TextureDdsConvertCommand
             }
         }
 
-        using var writer = new BinaryWriter(File.Create(output));
+        using var outputStream = File.Create(output);
+        var writer = new BinaryStream(outputStream, bigEndian: false);
         header.Write(writer);
         writer.Write(buffer);
     }

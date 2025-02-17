@@ -3,9 +3,9 @@ using System.Runtime.CompilerServices;
 
 namespace TLTool;
 
-public sealed partial class DataHeader
+public sealed partial class TLDataHeader
 {
-    /// <summary>Data structure describing the raw layout of a file entry in a <see cref="DataHeader"/>.</summary>
+    /// <summary>Data structure describing the raw layout of a file entry in a <see cref="TLDataHeader"/>.</summary>
     private struct RawFile
     {
         /// <summary>The maximum length of a file extension.</summary>
@@ -45,7 +45,7 @@ public sealed partial class DataHeader
         }
 
         /// <summary>Initializes a new <see cref="RawFile"/> instance.</summary>
-        public unsafe RawFile(BinaryReader reader)
+        public unsafe RawFile(BinaryStream reader)
         {
             Length = reader.ReadUInt64();
             CompressedLength = reader.ReadUInt64();
@@ -57,15 +57,15 @@ public sealed partial class DataHeader
         }
 
         /// <summary>Writes this <see cref="RawFile"/> to the specified writer.</summary>
-        public unsafe readonly void Write(BinaryWriter writer)
+        public unsafe readonly void Write(BinaryStream writer)
         {
-            writer.Write(Length);
-            writer.Write(CompressedLength);
-            writer.Write(Offset);
-            writer.Write(Hash);
+            writer.WriteUInt64(Length);
+            writer.WriteUInt64(CompressedLength);
+            writer.WriteUInt64(Offset);
+            writer.WriteUInt32(Hash);
             writer.Write(ExtensionBuffer);
-            writer.Write(ExtensionLength);
-            writer.Write(Unknown);
+            writer.WriteByte(ExtensionLength);
+            writer.WriteByte(Unknown);
         }
 
         /// <summary>Buffer structure for <see cref="ExtensionBuffer"/>.</summary>

@@ -349,6 +349,11 @@ namespace SevenZip.Compression.LZMA
 
 		public void SetDecoderProperties(byte[] properties)
 		{
+			SetDecoderProperties(properties.AsSpan());
+		}
+
+		public void SetDecoderProperties(ReadOnlySpan<byte> properties)
+		{
 			if (properties.Length < 5)
 				throw new InvalidParamException();
 			int lc = properties[0] % 9;

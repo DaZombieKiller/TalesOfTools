@@ -21,7 +21,7 @@ public sealed class UpdateNamesCommand
 
     public void Execute(InvocationContext context)
     {
-        var mapper = new NameDictionary();
+        var mapper = new TLDataNameDictionary();
         mapper.AddNamesFromFile(context.ParseResult.GetValueForArgument(FileDictionaryPath));
 
         foreach (string path in Directory.EnumerateFiles(context.ParseResult.GetValueForArgument(FilesPath), "$*.*", SearchOption.AllDirectories))

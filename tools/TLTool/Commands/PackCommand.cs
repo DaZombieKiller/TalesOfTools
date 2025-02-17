@@ -27,7 +27,7 @@ public sealed class PackCommand
 
     public void Execute(InvocationContext context)
     {
-        var header = new DataHeader();
+        var header = new TLDataHeader();
         var inputs = context.ParseResult.GetValueForArgument(InputPath);
         var output = context.ParseResult.GetValueForArgument(OutputPath);
         var is32Bit = context.ParseResult.GetValueForOption(Is32Bit);
@@ -36,7 +36,7 @@ public sealed class PackCommand
         foreach (string file in Directory.EnumerateFiles(inputs, "*", SearchOption.AllDirectories))
         {
             var name = Path.GetFileNameWithoutExtension(file);
-            var hash = TLHash.ComputeIgnoreCase(Path.GetFileName(file));
+            var hash = TLHash.HashToUInt32(Path.GetFileName(file), TLHashOptions.IgnoreCase);
 
             if (name.StartsWith('$') && !uint.TryParse(name.AsSpan(1), NumberStyles.HexNumber, null, out hash))
             {
@@ -50,12 +50,11 @@ public sealed class PackCommand
                 continue;
             }
 
-            header.AddEntry(new DataHeaderEntry(new FileInfo(file), hash));
+            header.AddEntry(new TLDataHeaderEntry(new FileInfo(file), hash));
         }
 
         using var stream = File.Create(Path.Combine(output, "FILEHEADER.TOFHDB"));
-        using var writer = bigEndian ? new BigEndianBinaryWriter(stream) : new BinaryWriter(stream);
         using var data = File.Create(Path.Combine(output, "TLFILE.TLDAT"));
-        header.Write(writer, data, is32Bit);
+        header.Write(new BinaryStream(stream, bigEndian), data, is32Bit);
     }
 }

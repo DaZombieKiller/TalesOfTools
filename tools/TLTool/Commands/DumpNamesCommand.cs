@@ -16,7 +16,7 @@ public sealed class DumpNamesCommand
 
     public Option<bool> IsBigEndian { get; } = new("--big-endian", "File is big-endian");
 
-    private readonly Dictionary<string, List<DataHeaderEntry>> _lookup = [];
+    private readonly Dictionary<string, List<TLDataHeaderEntry>> _lookup = [];
 
     public DumpNamesCommand()
     {
@@ -29,15 +29,14 @@ public sealed class DumpNamesCommand
 
     public void Execute(InvocationContext context)
     {
-        var header = new DataHeader();
-        var mapper = new NameDictionary();
+        var header = new TLDataHeader();
+        var mapper = new TLDataNameDictionary();
         var buffer = File.ReadAllBytes(context.ParseResult.GetValueForArgument(HeaderPath));
         var is32Bit = context.ParseResult.GetValueForOption(Is32Bit);
         var bigEndian = context.ParseResult.GetValueForOption(IsBigEndian);
 
         using (var stream = new MemoryStream(buffer))
-        using (var reader = bigEndian ? new BigEndianBinaryReader(stream) : new BinaryReader(stream))
-            header.ReadFrom(reader, new FileInfo(context.ParseResult.GetValueForArgument(TLFilePath)), is32Bit);
+            header.ReadFrom(new BinaryStream(stream, bigEndian), new FileInfo(context.ParseResult.GetValueForArgument(TLFilePath)), is32Bit);
 
         InitializeExtensionLookup(header);
         AddNamesFromDependFiles(header, mapper, bigEndian, is32Bit);
@@ -46,9 +45,9 @@ public sealed class DumpNamesCommand
         mapper.Write(Console.Out);
     }
 
-    private static void AddNamesFromDependFiles(DataHeader header, NameDictionary mapper, bool bigEndian, bool is32Bit)
+    private static void AddNamesFromDependFiles(TLDataHeader header, TLDataNameDictionary mapper, bool bigEndian, bool is32Bit)
     {
-        foreach (DataHeaderEntry entry in header.Entries)
+        foreach (TLDataHeaderEntry entry in header.Entries)
         {
             if (entry.Extension.EndsWith("_D", StringComparison.OrdinalIgnoreCase))
             {
@@ -57,9 +56,9 @@ public sealed class DumpNamesCommand
         }
     }
 
-    private void BruteForceDependFromPhysical(DataHeader header, NameDictionary mapper, string dependExtension, string physicalExtension)
+    private void BruteForceDependFromPhysical(TLDataHeader header, TLDataNameDictionary mapper, string dependExtension, string physicalExtension)
     {
-        foreach (DataHeaderEntry texture in GetFilesWithExtension(physicalExtension))
+        foreach (TLDataHeaderEntry texture in GetFilesWithExtension(physicalExtension))
         {
             if (!mapper.TryGetValue(texture.NameHash, texture.Extension, out string? name))
                 continue;
@@ -74,10 +73,10 @@ public sealed class DumpNamesCommand
         }
     }
 
-    private static void AddNamesFromDependFile(DataHeaderEntry entry, NameDictionary mapper, bool bigEndian, bool is32Bit)
+    private static void AddNamesFromDependFile(TLDataHeaderEntry entry, TLDataNameDictionary mapper, bool bigEndian, bool is32Bit)
     {
         using var stream = new MemoryStream((int)entry.DataSource.Length);
-        using var reader = bigEndian ? new BigEndianBinaryReader(stream) : new BinaryReader(stream);
+        var reader = new BinaryStream(stream, bigEndian);
 
         using (var source = entry.OpenRead())
         {
@@ -104,15 +103,15 @@ public sealed class DumpNamesCommand
         }
     }
 
-    private IEnumerable<DataHeaderEntry> GetFilesWithExtension(string extension)
+    private IEnumerable<TLDataHeaderEntry> GetFilesWithExtension(string extension)
     {
         if (_lookup.TryGetValue(extension, out var entries))
             return entries;
 
-        return Enumerable.Empty<DataHeaderEntry>();
+        return Enumerable.Empty<TLDataHeaderEntry>();
     }
 
-    private void InitializeExtensionLookup(DataHeader header)
+    private void InitializeExtensionLookup(TLDataHeader header)
     {
         _lookup.Clear();
 
