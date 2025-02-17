@@ -58,7 +58,7 @@ internal static partial class BinaryPrimitivesEx
             return false;
         }
 
-        value = ((ulong)source[2] << 16) | ((ulong)source[1] << 8) | source[0];
+        value = ((ulong)source[4] << 32) | ((ulong)source[3] << 24) | ((ulong)source[2] << 16) | ((ulong)source[1] << 8) | source[0];
         return true;
     }
 
