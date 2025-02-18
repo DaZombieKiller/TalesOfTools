@@ -2,11 +2,9 @@
 
 namespace TLTool;
 
-public sealed class ZArcNameDictionary(ZArcStringCaseType caseConversion)
+public sealed class ZArcNameDictionary(ZArcStringCaseType caseConversion) : NameDictionary<ulong>
 {
-    private readonly Dictionary<ulong, string> _names = [];
-
-    public bool TryAdd(string name)
+    public override bool TryAdd(string name)
     {
         switch (caseConversion)
         {
@@ -23,12 +21,12 @@ public sealed class ZArcNameDictionary(ZArcStringCaseType caseConversion)
             return false;
 
         var hash = ZArcHash.HashToUInt64(name);
-        return _names.TryAdd(hash, name);
+        return Names.TryAdd(hash, name);
     }
 
     public bool TryGetValue(ulong hash, [NotNullWhen(true)] out string? name)
     {
-        return _names.TryGetValue(hash, out name);
+        return Names.TryGetValue(hash, out name);
     }
 
     public string GetNameOrFallback(ulong hash)
@@ -38,34 +36,9 @@ public sealed class ZArcNameDictionary(ZArcStringCaseType caseConversion)
 
     public string GetNameOrFallback(ulong hash, string fallbackExtension)
     {
-        if (_names.TryGetValue(hash, out string? name))
+        if (Names.TryGetValue(hash, out string? name))
             return name;
 
         return $"${hash:X16}.{fallbackExtension}";
-    }
-
-    public void AddNames(TextReader reader)
-    {
-        for (string? line; (line = reader.ReadLine()) is { };)
-        {
-            if (string.IsNullOrEmpty(line))
-                continue;
-
-            TryAdd(line);
-        }
-    }
-
-    public void AddNamesFromFile(string path)
-    {
-        using var reader = new StreamReader(path);
-        AddNames(reader);
-    }
-
-    public void Write(TextWriter writer)
-    {
-        foreach (string name in _names.Values.Order())
-        {
-            writer.WriteLine(name);
-        }
     }
 }
