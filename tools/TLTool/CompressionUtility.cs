@@ -1,11 +1,14 @@
 ﻿using System.Buffers;
 using System.IO.Compression;
+using Microsoft.IO;
 using LzmaDecoder = SevenZip.Compression.LZMA.Decoder;
 
 namespace TLTool;
 
 public static class CompressionUtility
 {
+    private static readonly RecyclableMemoryStreamManager s_StreamManager = new();
+
     public const int TlzcMagic = 0x435A4C54; // TLZC
 
     /// <summary>Gets a decompression stream for TLZC file data.</summary>
@@ -36,7 +39,7 @@ public static class CompressionUtility
     // TODO: Clean this up a bit, make it actually stream the data instead of decompressing all at once.
     public static Stream GetZArcDecompressionStream(Stream stream, ReadOnlySpan<uint> blockSizes, uint alignment, long uncompressedSize, bool leaveOpen)
     {
-        var decoded = new MemoryStream();
+        var decoded = s_StreamManager.GetStream();
         var decoder = new LzmaDecoder();
         var remaining = uncompressedSize;
         var properties = (stackalloc byte[5]);
@@ -74,7 +77,7 @@ public static class CompressionUtility
     // TODO: Clean this up a bit, make it actually stream the data instead of decompressing all at once.
     private static Stream GetTlzcLzmaBlockStream(BinaryStream reader, uint alignment, uint uncompressedSize, bool leaveOpen)
     {
-        var decoded = new MemoryStream();
+        var decoded = s_StreamManager.GetStream();
         var decoder = new LzmaDecoder();
         var remaining = uncompressedSize;
         var blockCount = (uncompressedSize + alignment - 1) / alignment;
