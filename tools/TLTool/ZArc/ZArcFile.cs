@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 
 namespace TLTool;
 
@@ -29,7 +30,7 @@ public partial class ZArcFile
     public ZArcStringEncodeType PathEncoding { get; set; } = ZArcStringEncodeType.Ascii;
 
     /// <summary>String case conversion to perform when hashing file names.</summary>
-    public ZArcStringCaseType PathCaseConversion { get; set; } = ZArcStringCaseType.None;
+    public ZArcStringCaseType PathCaseConversion { get; set; } = ZArcStringCaseType.Lower;
 
     /// <summary>Initializes a new <see cref="ZArcFile"/> instance.</summary>
     public ZArcFile()
@@ -75,7 +76,7 @@ public partial class ZArcFile
             var source = new ZArcFileDataSource(
                 file,
                 header.BlockAlignment,
-                (long)header.BlockStride * contents[i].BlockOffset,
+                (long)header.FileAlignment * contents[i].BlockOffset,
                 (long)contents[i].UncompressedLength,
                 _blockSizes.AsSpan((int)contents[i].BlockIndex, (int)blocks));
 
@@ -84,8 +85,90 @@ public partial class ZArcFile
         }
     }
 
+    public void Write(BinaryStream stream)
+    {
+        SortEntriesByNameHash();
+
+        var header = new ZArchiveHeader
+        {
+            Magic = ZarcMagic,
+            Version = ZarcVersion,
+            EndOfHeader = ZArchiveHeader.Size,
+            ContentSize = ZArchiveContent.Size,
+            ContentCount = (uint)_entries.Count,
+            Unknown = 0,
+            PathEncoding = PathEncoding,
+            BlockAlignment = (uint)BlockAlignment,
+            FileAlignment = 128,
+            PathCaseConversion = PathCaseConversion,
+        };
+
+        // Compute the offset to the end of the header.
+        var blockCount = GetTotalBlockCount(header.BlockAlignment);
+        header.EndOfHeader += ZArchiveContent.Size * (uint)_entries.Count;
+        header.EndOfHeader += GetBlockSizeTableStride(header.BlockAlignment) * blockCount;
+        header.Write(stream);
+        var entries = new ZArchiveContent[_entries.Count];
+        
+        for ((int i, uint blockIndex, long fileOffset) = (0, 0, header.EndOfHeader); i < entries.Length; i++)
+        {
+            fileOffset = (fileOffset + header.FileAlignment - 1) & ~((long)header.FileAlignment - 1);
+            var length = _entries[i].DataSource.Length;
+            entries[i] = new ZArchiveContent
+            {
+                HashId = _entries[i].NameHash,
+                UncompressedLength = (ulong)length,
+                Unknown = 0,
+                BlockIndex = blockIndex,
+                BlockOffset = (uint)(fileOffset / header.FileAlignment),
+            };
+
+            entries[i].Write(stream);
+            blockIndex += _entries[i].GetBlockCount(header.BlockAlignment);
+            fileOffset += length;
+        }
+
+        // Write a bunch of zero block sizes (no compression support yet...)
+        var blockSizes = new uint[blockCount];
+        WriteBlockSizes(stream, header.BlockAlignment, blockSizes);
+
+        // Write the file data
+        for (int i = 0; i < entries.Length; i++)
+        {
+            // Need to align to FileAlignment so BlockOffset is valid.
+            stream.BaseStream.WriteAlign(header.FileAlignment, 0xEE);
+            using var data = _entries[i].OpenRead();
+            data.CopyTo(stream.BaseStream);
+        }
+    }
+
+    /// <summary>Gets the file with the specified name hash.</summary>
+    public bool TryGetEntry(ulong hash, [NotNullWhen(true)] out ZArcFileEntry? entry)
+    {
+        if (_hashToIndex.TryGetValue(hash, out int index))
+        {
+            entry = _entries[index];
+            return true;
+        }
+
+        entry = null;
+        return false;
+    }
+
+    /// <summary>Sorts all entries by name hash.</summary>
+    public void SortEntriesByNameHash()
+    {
+        _hashToIndex.Clear();
+        _entries.Sort((a, b) => a.NameHash.CompareTo(b.NameHash));
+
+        for (int i = 0; i < _entries.Count; i++)
+        {
+            _hashToIndex.Add(_entries[i].NameHash, i);
+        }
+    }
+
     /// <summary>Adds the specified file to the <see cref="ZArcFile"/>.</summary>
-    private void AddEntry(ZArcFileEntry entry)
+    public void AddEntry(ZArcFileEntry entry)
     {
         if (_hashToIndex.ContainsKey(entry.NameHash))
             throw new ArgumentException("A file with the same hash already exists.");
@@ -94,12 +177,57 @@ public partial class ZArcFile
         _entries.Add(entry);
     }
 
+    private uint GetTotalBlockCount(uint alignment)
+    {
+        uint count = 0;
+
+        foreach (var entry in _entries)
+            count += entry.GetBlockCount(alignment);
+
+        return count;
+    }
+
     /// <summary>Calculates the stride of the block size table.</summary>
     private static uint GetBlockSizeTableStride(uint alignment)
     {
         // The game checks != 1, which means '0' is apparently valid, and will produce a stride of 4.
         // I have no idea what happens if alignment is '1' and therefore stride is '0'.
         return alignment != 1 ? 1 + uint.Log2(alignment - 1) / 8 : 0;
+    }
+
+    /// <summary>Writes the block size table.</summary>
+    private void WriteBlockSizes(BinaryStream writer, uint alignment, ReadOnlySpan<uint> blocks)
+    {
+        var stride = GetBlockSizeTableStride(alignment);
+
+        if (stride == sizeof(byte))
+        {
+            for (int i = 0; i < blocks.Length; i++)
+            {
+                writer.WriteByte((byte)blocks[i]);
+            }
+        }
+        else if (stride == sizeof(ushort))
+        {
+            for (int i = 0; i < blocks.Length; i++)
+            {
+                writer.WriteUInt16((ushort)blocks[i]);
+            }
+        }
+        else if (stride == BinaryPrimitivesEx.Int24Size)
+        {
+            for (int i = 0; i < blocks.Length; i++)
+            {
+                writer.WriteUInt24(blocks[i]);
+            }
+        }
+        else if (stride == sizeof(uint))
+        {
+            for (int i = 0; i < blocks.Length; i++)
+            {
+                writer.WriteUInt32(blocks[i]);
+            }
+        }
     }
 
     /// <summary>Reads the block size table.</summary>

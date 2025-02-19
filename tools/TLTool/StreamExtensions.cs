@@ -7,14 +7,14 @@ namespace TLTool;
 /// <summary>Provides extension methods for <see cref="Stream"/>.</summary>
 public static class StreamExtensions
 {
-    /// <summary>Writes 0x00 bytes to the <see cref="Stream"/> until its position is aligned to the specified value.</summary>
-    public static void WriteAlign(this Stream stream, long alignment)
+    /// <summary>Writes padding bytes to the <see cref="Stream"/> until its position is aligned to the specified value.</summary>
+    public static void WriteAlign(this Stream stream, long alignment, byte pad = 0x00)
     {
         var aligned = (stream.Position + (alignment - 1)) & ~(alignment - 1);
 
         while (stream.Position < aligned)
         {
-            stream.WriteByte(0);
+            stream.WriteByte(pad);
         }
     }
 

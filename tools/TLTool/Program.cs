@@ -18,4 +18,5 @@ root.AddCommand(new QueryNamesCommand().Command);
 root.AddCommand(new DumpNamesCommand().Command);
 root.AddCommand(new QueryFileCommand().Command);
 root.AddCommand(new UnZarcCommand().Command);
+root.AddCommand(new ZarcCommand().Command);
 await root.InvokeAsync(args);

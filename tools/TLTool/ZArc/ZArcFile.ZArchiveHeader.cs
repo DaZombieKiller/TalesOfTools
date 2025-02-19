@@ -6,6 +6,9 @@ public partial class ZArcFile
     /// <summary>Data structure describing the raw header of a <see cref="ZArcFile"/>.</summary>
     private struct ZArchiveHeader(BinaryStream reader)
     {
+        /// <summary>The size of a <see cref="ZArchiveHeader"/> within a ZARC.</summary>
+        public const int Size = 40;
+
         /// <summary>The ZARC magic value.</summary>
         public uint Magic = reader.ReadUInt32();
 
@@ -30,8 +33,8 @@ public partial class ZArcFile
         /// <summary>The alignment of compressed blocks.</summary>
         public uint BlockAlignment = reader.ReadUInt32();
 
-        /// <summary>The stride used for content entry offsets.</summary>
-        public uint BlockStride = reader.ReadUInt32();
+        /// <summary>The alignment used for file data.</summary>
+        public uint FileAlignment = reader.ReadUInt32();
 
         /// <summary>The case conversion (if any) to perform on file paths when hashing.</summary>
         public ZArcStringCaseType PathCaseConversion = (ZArcStringCaseType)reader.ReadUInt32();
@@ -46,8 +49,8 @@ public partial class ZArcFile
             writer.WriteUInt32(ContentCount);
             writer.WriteUInt32(Unknown);
             writer.WriteUInt32((uint)PathEncoding);
-            writer.WriteUInt32(BlockStride);
             writer.WriteUInt32(BlockAlignment);
+            writer.WriteUInt32(FileAlignment);
             writer.WriteUInt32((uint)PathCaseConversion);
         }
     }

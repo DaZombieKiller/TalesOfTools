@@ -8,6 +8,24 @@ public sealed class ZArcFileEntry(IDataSource source, ulong nameHash)
     /// <summary>The source for the entry's data.</summary>
     public IDataSource DataSource { get; } = source;
 
+    /// <summary>Initializes a new <see cref="ZArcFileEntry"/> instance.</summary>
+    public ZArcFileEntry(FileInfo file, ulong hash)
+        : this(new FileDataSource(file), hash)
+    {
+    }
+
+    /// <summary>Initializes a new <see cref="ZArcFileEntry"/> instance.</summary>
+    public ZArcFileEntry(FileInfo file)
+        : this(file, ZArcHash.HashToUInt64(file.Name))
+    {
+    }
+
+    /// <summary>Gets the number of blocks used for this file in a ZARC.</summary>
+    public uint GetBlockCount(uint alignment)
+    {
+        return (uint)((DataSource.Length + alignment - 1) / alignment);
+    }
+
     /// <inheritdoc cref="IDataSource.OpenRead()" />
     public Stream OpenRead()
     {
