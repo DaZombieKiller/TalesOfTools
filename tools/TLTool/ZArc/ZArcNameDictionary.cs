@@ -6,13 +6,15 @@ public sealed class ZArcNameDictionary(ZArcStringCaseType caseConversion) : Name
 {
     public override bool TryAdd(string name)
     {
+        string hashName = name;
+
         switch (caseConversion)
         {
         case ZArcStringCaseType.Lower:
-            name = name.ToLowerInvariant();
+            hashName = name.ToLowerInvariant();
             break;
         case ZArcStringCaseType.Upper:
-            name = name.ToUpperInvariant();
+            hashName = name.ToUpperInvariant();
             break;
         }
 
@@ -20,7 +22,7 @@ public sealed class ZArcNameDictionary(ZArcStringCaseType caseConversion) : Name
         if (name.StartsWith('$'))
             return false;
 
-        var hash = ZArcHash.HashToUInt64(name);
+        var hash = ZArcHash.HashToUInt64(hashName);
         return Names.TryAdd(hash, name);
     }
 
