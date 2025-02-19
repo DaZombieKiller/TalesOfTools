@@ -22,8 +22,8 @@ struct ZArchiveContent
     type::Hex<u64> HashId;
     u40 UncSize;
     type::Hex<u32>;
-    u24 BlockIndex;
-    u32 Offset;
+    u24 LzmaBlockIndex;
+    u32 OffsetInContentAlignBlocks;
 } [[static]];
 
 struct ZArchiveHeader
@@ -35,19 +35,19 @@ struct ZArchiveHeader
     u32 ContentCount;
     u32;
     ZArcStringEncodeType PathEncoding;
-    type::Size32 BlockAlign;
-    type::Size32 BlockStride;
+    type::Size32 LzmaBlockAlign;
+    type::Size32 ContentAlign;
     ZArcStringCaseType PathCaseConversion;
     ZArchiveContent Content[ContentCount];
     
     if (BlockAlign > 16777216) {
-        u32 BlockSizes[(EndOfHeader - $) / 4];
+        u32 LzmaBlockSizes[(EndOfHeader - $) / 4];
     } else if (BlockAlign > 65536) {
-        u24 BlockSizes[(EndOfHeader - $) / 3];
+        u24 LzmaBlockSizes[(EndOfHeader - $) / 3];
     } else if (BlockAlign > 256) {
-        u16 BlockSizes[(EndOfHeader - $) / 2];
+        u16 LzmaBlockSizes[(EndOfHeader - $) / 2];
     } else {
-        u8 BlockSizes[(EndOfHeader - $)];
+        u8 LzmaBlockSizes[(EndOfHeader - $)];
     }
 } [[static]];
 
