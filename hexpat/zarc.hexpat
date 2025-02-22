@@ -40,11 +40,11 @@ struct ZArchiveHeader
     ZArcStringCaseType PathCaseConversion;
     ZArchiveContent Content[ContentCount];
     
-    if (BlockAlign > 16777216) {
+    if (LzmaBlockAlign > 16777216) {
         u32 LzmaBlockSizes[(EndOfHeader - $) / 4];
-    } else if (BlockAlign > 65536) {
+    } else if (LzmaBlockAlign > 65536) {
         u24 LzmaBlockSizes[(EndOfHeader - $) / 3];
-    } else if (BlockAlign > 256) {
+    } else if (LzmaBlockAlign > 256) {
         u16 LzmaBlockSizes[(EndOfHeader - $) / 2];
     } else {
         u8 LzmaBlockSizes[(EndOfHeader - $)];
