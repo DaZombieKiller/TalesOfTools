@@ -1,0 +1,27 @@
+name: .NET
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.x
+    - name: Build
+      run: |
+        dotnet publish -r win-x64 -c Release -p:PublishAOT=true
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: TLTool
+        path: artifacts/publish/TLTool/release_win-x64/**
+        if-no-files-found: error
