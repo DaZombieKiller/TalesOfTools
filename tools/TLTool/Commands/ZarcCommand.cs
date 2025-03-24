@@ -27,7 +27,7 @@ public sealed class ZarcCommand
 
         foreach (string file in Directory.EnumerateFiles(inputs, "*", SearchOption.AllDirectories))
         {
-            var name = Path.GetFileName(file);
+            var name = Path.GetFileNameWithoutExtension(file);
             var path = Path.GetRelativePath(inputs, file).Replace("\\", "/").ToLowerInvariant();
             var hash = ZArcHash.HashToUInt64(path);
             Console.WriteLine(path);
