@@ -14,11 +14,14 @@ public sealed class UnZarcCommand
 
     public Option<string> FileDictionaryPath { get; } = new("--dictionary", "Path to name dictionary file");
 
+    public Option<bool> NoDecompress { get; } = new("--no-decompress", "Disables decompression of TLZC files");
+
     public UnZarcCommand()
     {
         Command.AddArgument(InputPath);
         Command.AddArgument(OutputPath);
         Command.AddOption(FileDictionaryPath);
+        Command.AddOption(NoDecompress);
         Handler.SetHandler(Command, Execute);
     }
 
@@ -26,6 +29,7 @@ public sealed class UnZarcCommand
     {
         var archive = new ZArcFile();
         var output = context.ParseResult.GetValueForArgument(OutputPath);
+        var noDecompress = context.ParseResult.GetValueForOption(NoDecompress);
         var input = new FileInfo(context.ParseResult.GetValueForArgument(InputPath));
         archive.ReadFrom(input);
         var mapper = new ZArcNameDictionary(archive.PathCaseConversion);
@@ -37,7 +41,7 @@ public sealed class UnZarcCommand
         {
             var name = mapper.GetNameOrFallback(entry.NameHash);
             Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(output, name))!);
-            using var source = entry.OpenRead();
+            using var source = entry.OpenRead(!noDecompress);
             using var stream = File.Create(Path.Combine(output, name));
             source.CopyTo(stream);
         });

@@ -31,4 +31,10 @@ public sealed class ZArcFileEntry(IDataSource source, ulong nameHash)
     {
         return DataSource.OpenRead();
     }
+
+    /// <inheritdoc cref="ZArcFileDataSource.OpenRead"/>
+    public Stream OpenRead(bool recurse)
+    {
+        return DataSource is ZArcFileDataSource source ? source.OpenRead(recurse) : OpenRead();
+    }
 }

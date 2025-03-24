@@ -23,9 +23,15 @@ public sealed class ZArcFileDataSource(FileInfo? file, uint alignment, long offs
     /// <inheritdoc/>
     public Stream OpenRead()
     {
+        return OpenRead(recurse: true);
+    }
+
+    /// <inheritdoc cref="OpenRead()"/>
+    public Stream OpenRead(bool recurse)
+    {
         var stream = CompressionUtility.GetZArcDecompressionStream(OpenReadRaw(), BlockSizes, Alignment, Length, leaveOpen: false);
 
-        if (stream.Length > sizeof(int))
+        if (recurse && stream.Length > sizeof(int))
         {
             int magic = stream.ReadInt32LittleEndian();
             stream.Position -= sizeof(int);
