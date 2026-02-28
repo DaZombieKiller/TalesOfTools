@@ -80,7 +80,7 @@ public sealed class UnpackCommand
             if (mapper.TryGetFileMap(entry.NameHash, entry.Extension, out var map))
             {
                 if (!string.IsNullOrEmpty(map.FullPath))
-                    path = Path.Combine(output, map.FullPath.TrimStart('/', '\\'));
+                    path = Path.Combine(output, map.FullPath.TrimStart('/', '\\').Replace('\\', '/'));
 
                 time = map.TimeStamp;
             }

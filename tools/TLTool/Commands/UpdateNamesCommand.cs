@@ -72,7 +72,7 @@ public sealed class UpdateNamesCommand
                 {
                     if (!string.IsNullOrEmpty(map.FullPath))
                     {
-                        var location = Path.Combine(filesPath, map.FullPath.TrimStart('/', '\\'));
+                        var location = Path.Combine(filesPath, map.FullPath.TrimStart('/', '\\').Replace('\\', '/'));
                         Directory.CreateDirectory(Path.GetDirectoryName(location) ?? filesPath);
                         File.Move(path, location);
                         
