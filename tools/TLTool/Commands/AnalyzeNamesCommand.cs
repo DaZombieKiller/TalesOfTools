@@ -49,7 +49,7 @@ public sealed class AnalyzeNamesCommand
             mapper = new TLDataNameDictionary();
         }
 
-        mapper.AddNamesFromFile(context.ParseResult.GetValueForArgument(FileDictionaryPath));
+        mapper.AddNamesFromList(context.ParseResult.GetValueForArgument(FileDictionaryPath));
         var entriesNamed = 0;
         var longestExtension = "Type".Length;
         int longestCount = int.Max(data.Entries.Count.ToString().Length, "Count".Length);

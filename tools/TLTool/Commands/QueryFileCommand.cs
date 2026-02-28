@@ -41,7 +41,7 @@ public sealed class QueryFileCommand
             data.ReadFrom(new BinaryStream(stream, bigEndian), is32Bit);
 
         if (context.ParseResult.HasOption(Dictionary))
-            mapper.AddNamesFromFile(context.ParseResult.GetValueForOption(Dictionary)!);
+            mapper.AddNamesFromList(context.ParseResult.GetValueForOption(Dictionary)!);
 
         foreach (var entry in data.Entries)
         {

@@ -42,7 +42,7 @@ public sealed class DumpNamesCommand
         AddNamesFromDependFiles(header, mapper, bigEndian, is32Bit);
         BruteForceDependFromPhysical(header, mapper, "TOTEXB_D", "TOTEXP_P");
         BruteForceDependFromPhysical(header, mapper, "TOMDLB_D", "TOMDLP_P");
-        mapper.Write(Console.Out);
+        mapper.WriteNameList(Console.Out);
     }
 
     private static void AddNamesFromDependFiles(TLDataHeader header, TLDataNameDictionary mapper, bool bigEndian, bool is32Bit)
@@ -51,7 +51,13 @@ public sealed class DumpNamesCommand
         {
             if (entry.Extension.EndsWith("_D", StringComparison.OrdinalIgnoreCase))
             {
-                AddNamesFromDependFile(entry, mapper, bigEndian, is32Bit);
+                try
+                {
+                    AddNamesFromDependFile(entry, mapper, bigEndian, is32Bit);
+                }
+                catch
+                {
+                }
             }
         }
     }

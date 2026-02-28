@@ -22,6 +22,8 @@ public sealed class UnpackCommand
 
     public Option<bool> IsBigEndian { get; } = new("--big-endian", "File is big-endian");
 
+    public Option<bool> IsFileMap { get; } = new("--file-map", "Name dictionary is a TLFDBX file");
+
     public UnpackCommand()
     {
         Command.AddArgument(HeaderPath);
@@ -31,6 +33,7 @@ public sealed class UnpackCommand
         Command.AddOption(Is32Bit);
         Command.AddOption(IsBigEndian);
         Command.AddOption(Encrypted);
+        Command.AddOption(IsFileMap);
         Handler.SetHandler(Command, Execute);
     }
 
@@ -54,15 +57,45 @@ public sealed class UnpackCommand
             header.ReadFrom(new BinaryStream(stream, bigEndian), new FileInfo(context.ParseResult.GetValueForArgument(TLFilePath)), is32Bit);
 
         if (context.ParseResult.HasOption(FileDictionaryPath))
-            mapper.AddNamesFromFile(context.ParseResult.GetValueForOption(FileDictionaryPath)!);
+        {
+            var path = context.ParseResult.GetValueForOption(FileDictionaryPath)!;
+            var extension = Path.GetExtension(path);
+
+            if (extension.Equals(".TLFDBX", StringComparison.OrdinalIgnoreCase) || context.ParseResult.GetValueForOption(IsFileMap))
+            {
+                mapper.AddNamesFromXml(path);
+            }
+            else
+            {
+                mapper.AddNamesFromList(path);
+            }
+        }
 
         Parallel.ForEach(header.Entries, entry =>
         {
             var name = mapper.GetNameOrFallback(entry.NameHash, entry.Extension);
-            Directory.CreateDirectory(Path.Combine(output, entry.Extension));
-            using var source = GetStream((TLFileDataSource)entry.DataSource, encrypt);
-            using var stream = File.Create(Path.Combine(output, entry.Extension, name));
-            source.CopyTo(stream);
+            var path = Path.Combine(Path.Combine(output, entry.Extension), name);
+            var time = 0L;
+
+            if (mapper.TryGetFileMap(entry.NameHash, entry.Extension, out var map))
+            {
+                if (!string.IsNullOrEmpty(map.FullPath))
+                    path = Path.Combine(output, map.FullPath.TrimStart('/', '\\'));
+
+                time = map.TimeStamp;
+            }
+
+            Directory.CreateDirectory(Path.GetDirectoryName(path) ?? output);
+            using (var source = GetStream((TLFileDataSource)entry.DataSource, encrypt))
+            using (var stream = File.Create(path))
+            {
+                source.CopyTo(stream);
+            }
+
+            if (time > 0)
+            {
+                File.SetLastWriteTimeUtc(path, DateTime.FromFileTimeUtc(time));
+            }
         });
     }
 

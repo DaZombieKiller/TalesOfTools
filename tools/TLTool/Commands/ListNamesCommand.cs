@@ -30,7 +30,7 @@ public sealed class ListNamesCommand
         var mapper = new TLDataNameDictionary();
         var is32Bit = context.ParseResult.GetValueForOption(Is32Bit);
         var bigEndian = context.ParseResult.GetValueForOption(IsBigEndian);
-        mapper.AddNamesFromFile(context.ParseResult.GetValueForArgument(FileDictionaryPath)!);
+        mapper.AddNamesFromList(context.ParseResult.GetValueForArgument(FileDictionaryPath)!);
 
         using (var stream = File.OpenRead(context.ParseResult.GetValueForArgument(HeaderPath)))
             header.ReadFrom(new BinaryStream(stream, bigEndian), is32Bit);

@@ -35,7 +35,7 @@ public sealed class UnZarcCommand
         var mapper = new ZArcNameDictionary(archive.PathCaseConversion);
 
         if (context.ParseResult.HasOption(FileDictionaryPath))
-            mapper.AddNamesFromFile(context.ParseResult.GetValueForOption(FileDictionaryPath)!);
+            mapper.AddNamesFromList(context.ParseResult.GetValueForOption(FileDictionaryPath)!);
 
         Parallel.ForEach(archive.Entries, entry =>
         {

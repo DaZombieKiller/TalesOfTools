@@ -24,6 +24,18 @@ public sealed class TLHash(TLHashOptions options) : NonCryptographicHashAlgorith
 {
     private uint _hash;
 
+    /// <summary>Sets the current hash value.</summary>
+    public void SetCurrentHash(uint value)
+    {
+        _hash = value;
+    }
+
+    /// <summary>Gets the current computed hash value without modifying accumulated state.</summary>
+    public uint GetCurrentHashAsUInt32()
+    {
+        return _hash;
+    }
+
     /// <inheritdoc/>
     public override void Append(ReadOnlySpan<byte> source)
     {

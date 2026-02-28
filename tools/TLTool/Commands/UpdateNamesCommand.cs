@@ -12,6 +12,8 @@ public sealed class UpdateNamesCommand
 
     public Argument<string> FileDictionaryPath { get; } = new("dictionary", "Path to name dictionary file");
 
+    public Option<bool> IsFileMap { get; } = new("--file-map", "Name dictionary is a TLFDBX file");
+
     public Option<string> HashTypeString { get; } = new("--hash-type", "Hash type (tlhash (default), zarc, zarc-lower, zarc-upper)");
 
     public UpdateNamesCommand()
@@ -19,6 +21,7 @@ public sealed class UpdateNamesCommand
         Command.AddArgument(FilesPath);
         Command.AddArgument(FileDictionaryPath);
         Command.AddOption(HashTypeString);
+        Command.AddOption(IsFileMap);
         Handler.SetHandler(Command, Execute);
     }
 
@@ -33,7 +36,17 @@ public sealed class UpdateNamesCommand
             _ => new TLDataNameDictionary()
         };
 
-        mapper.AddNamesFromFile(context.ParseResult.GetValueForArgument(FileDictionaryPath));
+        var dictionary = context.ParseResult.GetValueForArgument(FileDictionaryPath);
+        var dictionaryType = Path.GetExtension(dictionary);
+
+        if (dictionaryType.Equals(".TLFDBX", StringComparison.OrdinalIgnoreCase) || context.ParseResult.GetValueForOption(IsFileMap))
+        {
+            mapper.AddNamesFromXml(dictionary);
+        }
+        else
+        {
+            mapper.AddNamesFromList(dictionary);
+        }
 
         foreach (string path in Directory.EnumerateFiles(filesPath, "$*.*", SearchOption.AllDirectories))
         {
@@ -55,6 +68,21 @@ public sealed class UpdateNamesCommand
 
             try
             {
+                if (mapper is TLDataNameDictionary tl && tl.TryGetFileMap(checked((uint)hash), extension[1..], out var map))
+                {
+                    if (!string.IsNullOrEmpty(map.FullPath))
+                    {
+                        var location = Path.Combine(filesPath, map.FullPath.TrimStart('/', '\\'));
+                        Directory.CreateDirectory(Path.GetDirectoryName(location) ?? filesPath);
+                        File.Move(path, location);
+                        
+                        if (map.TimeStamp > 0)
+                            File.SetLastWriteTimeUtc(location, DateTime.FromFileTimeUtc(map.TimeStamp));
+
+                        continue;
+                    }
+                }
+
                 if (Path.GetDirectoryName(name) is { } subDirectory)
                     Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(path)!, subDirectory));
 

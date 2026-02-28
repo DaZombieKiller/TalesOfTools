@@ -1,5 +1,5 @@
-﻿using TLTool;
-using System.CommandLine;
+﻿using System.CommandLine;
+using TLTool;
 
 var root = new RootCommand("TLTool");
 root.AddCommand(new UnpackCommand().Command);
@@ -19,4 +19,5 @@ root.AddCommand(new DumpNamesCommand().Command);
 root.AddCommand(new QueryFileCommand().Command);
 root.AddCommand(new UnZarcCommand().Command);
 root.AddCommand(new ZarcCommand().Command);
+root.AddCommand(new MergeFileMapsCommand().Command);
 await root.InvokeAsync(args);

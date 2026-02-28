@@ -22,7 +22,7 @@ public sealed class QueryNamesCommand
     public void Execute(InvocationContext context)
     {
         var mapper = new TLDataNameDictionary();
-        mapper.AddNamesFromFile(context.ParseResult.GetValueForArgument(Dictionary));
+        mapper.AddNamesFromList(context.ParseResult.GetValueForArgument(Dictionary));
 
         foreach (string query in context.ParseResult.GetValueForArgument(Hashes))
         {
