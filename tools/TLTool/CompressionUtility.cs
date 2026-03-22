@@ -7,7 +7,12 @@ namespace TLTool;
 
 public static class CompressionUtility
 {
-    private static readonly RecyclableMemoryStreamManager s_StreamManager = new();
+    private static readonly RecyclableMemoryStreamManager s_StreamManager = new(new RecyclableMemoryStreamManager.Options
+    {
+        MaximumSmallPoolFreeBytes = 8L * 1024L * 1024L,
+        MaximumLargePoolFreeBytes = 128L * 1024L * 1024L,
+        AggressiveBufferReturn = true,
+    });
 
     public const int TlzcMagic = 0x435A4C54; // TLZC
 
